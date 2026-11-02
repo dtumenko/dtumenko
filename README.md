@@ -665,22 +665,35 @@ Na sirokim ekranima Framer menja varijantu sekcije, pa oznake odu sa starim
 cvorovima. Vraca ih `MutationObserver`, preko tajmera a ne
 `requestAnimationFrame` — rAF ume da bude uspavan dok se kartica ne iscrtava.
 
-## Tekst "Approach" na stranici projekta
+## Case study na stranici projekta (Challenge / Approach / Results / Testimonial)
 
-Desno, ispod Overview-a i disciplina, stoji opcioni blok **Approach**: 2–3
-paragrafa o tome sta je radjeno na projektu i koji su problemi reseni. U panelu
-je to polje **Approach** (posle Year), isto za obe vrste projekata. Paragrafi se
-odvajaju praznim redom; prazno polje znaci da se blok ne prikazuje.
+Desno, ispod Overview-a i disciplina, stoje opcione sekcije, ovim redom:
 
-| | gde stoji tekst | ko ga stavlja na stranicu |
+| sekcija | polje u panelu | kljuc u podacima |
 |---|---|---|
-| CMS projekti | `story` u frontmatteru `content/work/*.md` | `scripts/build.mjs`, kroz `{{STORY_BLOCK}}` u `templates/work-item.html` |
-| originalnih 6 | `story` u `content/legacy-work.json` | `scripts/build.mjs` upise JSON u `<script id="cms-story">` na stranici, a [assets/project-story.js](assets/project-story.js) ga ubaci posle hidracije |
+| Challenge | Challenge | `challenge` |
+| Approach | Approach | `story` (staro ime polja, zadrzano) |
+| Results | Result 1–3 (broj + opis) i Results (tekst) | `metrics: [{value, label}]`, `results` |
+| Testimonial | Testimonial, Testimonial Name, Testimonial Role | `testimonial: {quote, name, role}` |
+
+U panelu su pod naslovom **Case study** (posle Year), ista za obe vrste
+projekata. Paragrafi se odvajaju praznim redom. Prazno polje znaci da se sekcija
+ne prikazuje; broj bez vrednosti se preskace. Navodnici oko izjave se dodaju na
+stranici. Oznake sekcija su istim fontom kao "Overview" (PT Mono), tekst kao
+tekst Overview-a; brojevi su veliki Inter Display, a na telefonu (<=480px) svaki
+broj dobija svoj red.
+
+| | gde stoje podaci | ko ih stavlja na stranicu |
+|---|---|---|
+| CMS projekti | frontmatter `content/work/*.md` | `scripts/build.mjs` (`caseSections` -> `{{STORY_BLOCK}}` u `templates/work-item.html`), stilovi u `assets/cms.css` (`.cms-case__*`) |
+| originalnih 6 | `content/legacy-work.json` | `scripts/build.mjs` upise `{sections}` kao JSON u `<script id="cms-story">`, a [assets/project-story.js](assets/project-story.js) ga ubaci posle hidracije |
 
 Kod originalnih 6 je to isti put kao za dodatne slike: Framer komponenta nema
 polje za taj tekst, a markup dodat u izvor React posle hidracije skloni. Skript
-klonira Framer-ov blok "Overview", pa tekst nasledjuje iste klase (font,
-velicinu, prelomne tacke), i ubacuje ga iza bloka sa disciplinama. Blok se trazi
+klonira Framer-ov blok "Overview" za svaku sekciju, pa tekst nasledjuje iste klase
+(font, velicinu, prelomne tacke), i ubacuje sekcije iza bloka sa disciplinama.
+Velicine brojeva i citata su u `CASE_CSS` u istom fajlu — iste mere kao u
+`assets/cms.css`, menjati na oba mesta. Blok se trazi
 po tekstu oznake "Overview", a discipline po `data-framer-name="Service Row"` —
 ne po klasama, koje se menjaju sa svakim exportom.
 
@@ -689,7 +702,7 @@ pa bi joj dno ostalo van slike sve do kraja galerije. Zato `assets/cms.js` (CMS
 stranice) i `project-story.js` (Framer stranice) tada racunaju negativan `top`:
 kolona prvo odskroluje sa stranicom, a zalepi se tek kad joj dno udje u sliku.
 
-Oznaka "Approach" je konstanta `STORY_LABEL` u `scripts/build.mjs`.
+Nazivi sekcija su u `caseSections()` u `scripts/build.mjs`.
 
 ## Popravke — pregled sajta (nov 2026)
 

@@ -402,12 +402,72 @@
       overview: data.overview || "",
       projectOverview: data.project_overview || parsed.body.trim(),
       story: data.story || "",
+      challenge: caseFields(data).challenge,
+      results: caseFields(data).results,
+      metrics: caseFields(data).metrics,
+      testimonial: caseFields(data).testimonial,
       liveLink: data.live_link || "",
       services: services.map(String),
       thumb: { src: data.hero_image || "", alt: "", match: data.hero_image || "" },
       heroFocus: data.hero_focus || "center",
       images: images,
       video: video,
+    };
+  }
+
+  // Case study polja (Challenge / Results / Testimonial) — ista za CMS i
+  // originalnih 6. Brojeva uz Results ima uvek tri slota u editoru.
+  var METRIC_SLOTS = 3;
+
+  function readMetrics(list) {
+    var metrics = (Array.isArray(list) ? list : []).slice(0, METRIC_SLOTS).map(function (metric) {
+      return { value: String((metric && metric.value) || ""), label: String((metric && metric.label) || "") };
+    });
+    while (metrics.length < METRIC_SLOTS) metrics.push({ value: "", label: "" });
+    return metrics;
+  }
+
+  function writeMetrics(metrics) {
+    var list = (metrics || [])
+      .map(function (metric) {
+        return { value: String(metric.value || "").trim(), label: String(metric.label || "").trim() };
+      })
+      .filter(function (metric) {
+        return metric.value;
+      });
+    return list.length ? list : undefined;
+  }
+
+  function readTestimonial(t) {
+    t = t || {};
+    return { quote: String(t.quote || ""), name: String(t.name || ""), role: String(t.role || "") };
+  }
+
+  function writeTestimonial(t) {
+    t = t || {};
+    var quote = String(t.quote || "").trim();
+    if (!quote) return undefined;
+    var out = { quote: quote };
+    if (String(t.name || "").trim()) out.name = String(t.name).trim();
+    if (String(t.role || "").trim()) out.role = String(t.role).trim();
+    return out;
+  }
+
+  function caseFields(source) {
+    return {
+      challenge: source.challenge || "",
+      results: source.results || "",
+      metrics: readMetrics(source.metrics),
+      testimonial: readTestimonial(source.testimonial),
+    };
+  }
+
+  function caseData(item) {
+    return {
+      challenge: String(item.challenge || "").trim() || undefined,
+      results: String(item.results || "").trim() || undefined,
+      metrics: writeMetrics(item.metrics),
+      testimonial: writeTestimonial(item.testimonial),
     };
   }
 
@@ -431,7 +491,11 @@
       year: item.year === "" ? undefined : Number(item.year),
       services: item.services.filter(Boolean),
       overview: item.overview,
+      challenge: undefined,
       story: String(item.story || "").trim(),
+      results: undefined,
+      metrics: undefined,
+      testimonial: undefined,
       live_link: item.liveLink || "",
       hero_image: item.thumb.src || "",
       hero_focus: item.heroFocus || "center",
@@ -439,6 +503,11 @@
     };
     if (data.year === undefined || isNaN(data.year)) delete data.year;
     if (!data.story) delete data.story;
+    var extra = caseData(item);
+    Object.keys(extra).forEach(function (key) {
+      if (extra[key] === undefined) delete data[key];
+      else data[key] = extra[key];
+    });
     return stringifyMarkdown(data, item.projectOverview);
   }
 
@@ -484,6 +553,10 @@
       // Tekst "Approach" Framer stranica nema — stoji u legacy-work.json, a
       // scripts/build.mjs ga upisuje u stranicu (vidi assets/project-story.js).
       story: row.story || "",
+      challenge: caseFields(row).challenge,
+      results: caseFields(row).results,
+      metrics: caseFields(row).metrics,
+      testimonial: caseFields(row).testimonial,
       liveLink: legacyField(manifest, "live_link"),
       services: [],
       cardImage: row.hero_image || "",
@@ -510,7 +583,11 @@
       year: item.year !== "" && !isNaN(year) ? year : undefined,
       overview: item.overview,
       hero_image: item.cardImage || item.thumb.src || "",
+      challenge: caseData(item).challenge,
       story: String(item.story || "").trim() || undefined,
+      results: caseData(item).results,
+      metrics: caseData(item).metrics,
+      testimonial: caseData(item).testimonial,
       status: item.status === "Draft" ? "Draft" : undefined,
     };
   }
@@ -558,6 +635,10 @@
       overview: "",
       projectOverview: "",
       story: "",
+      challenge: "",
+      results: "",
+      metrics: readMetrics([]),
+      testimonial: readTestimonial(null),
       liveLink: "",
       services: ["", "", ""],
       thumb: { src: "", alt: "", match: "" },
@@ -1802,24 +1883,116 @@
       );
     }
 
-    // Isto polje za obe vrste projekata. Kod CMS projekata ide u frontmatter
-    // (`story`), kod originalnih 6 u legacy-work.json — Framer stranica ga nema.
+    // Case study — ista polja za obe vrste projekata. Kod CMS projekata idu u
+    // frontmatter, kod originalnih 6 u legacy-work.json (Framer stranica ih
+    // nema; ubacuje ih assets/project-story.js). Prazno polje = nema sekcije.
+    if (!draft.metrics) draft.metrics = readMetrics([]);
+    if (!draft.testimonial) draft.testimonial = readTestimonial(null);
+
+    function caseText(key, rows, placeholder) {
+      return el("textarea", {
+        class: "textarea",
+        rows: rows,
+        value: draft[key] || "",
+        placeholder: placeholder,
+        oninput: function (event) {
+          draft[key] = event.target.value;
+          markDirty();
+        },
+      });
+    }
+
+    fields.push(sectionRow("Case study"));
+
+    fields.push(
+      fieldRow(
+        "Challenge",
+        caseText("challenge", 5, "Sa kakvim problemom je brend dosao, sta nije radilo…"),
+        "1–2 paragrafa, odvojena praznim redom. Prva sekcija ispod disciplina."
+      )
+    );
+
+    // Polje se u podacima i dalje zove `story`.
     fields.push(
       fieldRow(
         "Approach",
-        el("textarea", {
-          class: "textarea",
-          rows: 10,
-          value: draft.story || "",
-          placeholder: "Sta je radjeno na projektu, koji su problemi bili i kako su reseni…",
-          oninput: function (event) {
-            draft.story = event.target.value;
-            markDirty();
-          },
-        }),
-        "2–3 paragrafa, odvojena praznim redom. Stoji desno na stranici projekta, ispod disciplina. Prazno polje — sekcija se ne prikazuje."
+        caseText("story", 8, "Sta je radjeno na projektu i kako su problemi reseni…"),
+        "2–3 paragrafa, odvojena praznim redom."
       )
     );
+
+    draft.metrics.forEach(function (metric, index) {
+      fields.push(
+        fieldRow(
+          "Result " + (index + 1),
+          el("div", { class: "metric-row" }, [
+            el("input", {
+              class: "input",
+              value: metric.value,
+              placeholder: index === 0 ? "+40%" : index === 1 ? "3×" : "12 wk",
+              oninput: function (event) {
+                metric.value = event.target.value;
+                markDirty();
+              },
+            }),
+            el("input", {
+              class: "input",
+              value: metric.label,
+              placeholder: index === 0 ? "Direct bookings" : index === 1 ? "Social reach" : "Brief to launch",
+              oninput: function (event) {
+                metric.label = event.target.value;
+                markDirty();
+              },
+            }),
+          ]),
+          index === 0 ? "Broj i kratak opis. Prikazuje se samo red koji ima broj." : null
+        )
+      );
+    });
+
+    fields.push(
+      fieldRow(
+        "Results",
+        caseText("results", 5, "Sta se promenilo posle saradnje…"),
+        "Tekst ispod brojeva. Paragrafi odvojeni praznim redom."
+      )
+    );
+
+    fields.push(
+      fieldRow(
+        "Testimonial",
+        el("textarea", {
+          class: "textarea",
+          rows: 4,
+          value: draft.testimonial.quote,
+          placeholder: "Izjava klijenta, bez navodnika — dodaju se sami.",
+          oninput: function (event) {
+            draft.testimonial.quote = event.target.value;
+            markDirty();
+          },
+        })
+      )
+    );
+
+    [
+      ["name", "Testimonial Name", "Ime i prezime"],
+      ["role", "Testimonial Role", "Funkcija, firma"],
+    ].forEach(function (field) {
+      fields.push(
+        fieldRow(
+          field[1],
+          el("input", {
+            class: "input",
+            value: draft.testimonial[field[0]],
+            placeholder: field[2],
+            oninput: function (event) {
+              draft.testimonial[field[0]] = event.target.value;
+              markDirty();
+            },
+          })
+        )
+      );
+    });
 
     fields.push(sectionRow("Images"));
 

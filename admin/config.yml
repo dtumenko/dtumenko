@@ -22,7 +22,26 @@ collections:
       - { label: "Year", name: "year", widget: "number", value_type: "int" }
       - { label: "Services / Discipline", name: "services", widget: "list", default: ["Brand Identity"] }
       - { label: "Overview", name: "overview", widget: "text", hint: "Short summary shown on the Work list card." }
-      - { label: "Approach", name: "story", widget: "text", required: false, hint: "2-3 paragraphs separated by a blank line. Shown on the right, under the disciplines." }
+      - { label: "Challenge", name: "challenge", widget: "text", required: false, hint: "1-2 paragraphs separated by a blank line. First case-study section, under the disciplines." }
+      - { label: "Approach", name: "story", widget: "text", required: false, hint: "2-3 paragraphs separated by a blank line." }
+      - label: "Results — numbers"
+        name: "metrics"
+        widget: "list"
+        required: false
+        max: 3
+        summary: "{{fields.value}} {{fields.label}}"
+        fields:
+          - { label: "Value", name: "value", widget: "string", hint: "e.g. +40%" }
+          - { label: "Label", name: "label", widget: "string", required: false, hint: "e.g. Direct bookings" }
+      - { label: "Results", name: "results", widget: "text", required: false, hint: "Text under the numbers." }
+      - label: "Testimonial"
+        name: "testimonial"
+        widget: "object"
+        required: false
+        fields:
+          - { label: "Quote", name: "quote", widget: "text", required: false, hint: "Without quotation marks — they are added on the page." }
+          - { label: "Name", name: "name", widget: "string", required: false }
+          - { label: "Role", name: "role", widget: "string", required: false }
       - { label: "Live Link", name: "live_link", widget: "string", required: false }
       - { label: "Hero Image", name: "hero_image", widget: "image" }
       - label: "Gallery"

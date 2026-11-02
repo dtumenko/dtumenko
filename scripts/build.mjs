@@ -210,9 +210,10 @@ function normalizeUrl(url) {
   return `https://${trimmed}`;
 }
 
-// Duzi opis rada (polje `story`): sta je radjeno, koji su problemi reseni.
-// Stoji desno, ispod disciplina. Paragrafi se u CMS-u odvajaju praznim redom.
-const STORY_LABEL = "Approach";
+// Case study desno, ispod disciplina: Challenge -> Approach -> Results ->
+// Testimonial. Svaka sekcija je opciona; prazna se ne prikazuje. Paragrafi se
+// u CMS-u odvajaju praznim redom. Polje za Approach se i dalje zove `story`.
+const MAX_METRICS = 3;
 
 function storyParagraphs(story) {
   return String(story || "")
@@ -221,16 +222,94 @@ function storyParagraphs(story) {
     .filter(Boolean);
 }
 
-function renderStoryBlock(story) {
-  const paragraphs = storyParagraphs(story);
-  if (!paragraphs.length) return "";
-  const body = paragraphs
-    .map((paragraph) => `        <p class="cms-info__text">${escapeHtml(paragraph)}</p>`)
-    .join("\n");
+function cleanText(value) {
+  return String(value == null ? "" : value).replace(/\s+/g, " ").trim();
+}
+
+// Brojevi uz Results: { value: "+40%", label: "Direct bookings" }. Bez
+// vrednosti broj nema smisla, pa se takav red preskace.
+function caseMetrics(metrics) {
+  return (Array.isArray(metrics) ? metrics : [])
+    .map((metric) => ({ value: cleanText(metric && metric.value), label: cleanText(metric && metric.label) }))
+    .filter((metric) => metric.value)
+    .slice(0, MAX_METRICS);
+}
+
+// Navodnici se dodaju na stranici, pa se oni koje je klijent vec upisao skidaju.
+function caseTestimonial(testimonial) {
+  const t = testimonial || {};
+  const quote = cleanText(t.quote).replace(/^["“”„']+|["“”']+$/g, "").trim();
+  if (!quote) return null;
+  return { quote, name: cleanText(t.name), role: cleanText(t.role) };
+}
+
+// Zajednicki opis sekcija — iz njega se prave i CMS stranice (HTML) i JSON za
+// Framer stranice (assets/project-story.js).
+function caseSections(project) {
+  const sections = [];
+  const text = (key, label) => {
+    const paragraphs = storyParagraphs(project[key]);
+    return { label, paragraphs };
+  };
+
+  const challenge = text("challenge", "Challenge");
+  if (challenge.paragraphs.length) sections.push(challenge);
+
+  const approach = text("story", "Approach");
+  if (approach.paragraphs.length) sections.push(approach);
+
+  const results = text("results", "Results");
+  results.metrics = caseMetrics(project.metrics);
+  if (results.paragraphs.length || results.metrics.length) sections.push(results);
+
+  const testimonial = caseTestimonial(project.testimonial);
+  if (testimonial) sections.push({ label: "Testimonial", paragraphs: [], testimonial });
+
+  return sections;
+}
+
+function renderCaseSection(section) {
+  const lines = [`        <p class="cms-info__label">${escapeHtml(section.label)}</p>`];
+
+  if (section.metrics && section.metrics.length) {
+    const items = section.metrics
+      .map(
+        (metric) =>
+          `          <div class="cms-case__metric">\n` +
+          `            <p class="cms-case__value">${escapeHtml(metric.value)}</p>\n` +
+          (metric.label ? `            <p class="cms-case__metric-label">${escapeHtml(metric.label)}</p>\n` : "") +
+          `          </div>`
+      )
+      .join("\n");
+    lines.push(`        <div class="cms-case__metrics" data-count="${section.metrics.length}">\n${items}\n        </div>`);
+  }
+
+  section.paragraphs.forEach((paragraph) => {
+    lines.push(`        <p class="cms-info__text">${escapeHtml(paragraph)}</p>`);
+  });
+
+  if (section.testimonial) {
+    const { quote, name, role } = section.testimonial;
+    const by = [
+      name ? `<span class="cms-case__name">${escapeHtml(name)}</span>` : "",
+      role ? `<span class="cms-case__role">${escapeHtml(role)}</span>` : "",
+    ].join("");
+    lines.push(
+      `        <figure class="cms-case__quote">\n` +
+        `          <blockquote><p>“${escapeHtml(quote)}”</p></blockquote>\n` +
+        (by ? `          <figcaption>${by}</figcaption>\n` : "") +
+        `        </figure>`
+    );
+  }
+
   return (
-    `      <div class="cms-info__block cms-info__story" data-cms-reveal="tilt">\n` +
-    `        <p class="cms-info__label">${STORY_LABEL}</p>\n${body}\n      </div>`
+    `      <div class="cms-info__block cms-info__case" data-cms-reveal="tilt">\n` +
+    `${lines.join("\n")}\n      </div>`
   );
+}
+
+function renderCaseBlocks(project) {
+  return caseSections(project).map(renderCaseSection).join("\n");
 }
 
 function renderLiveLinkBlock(liveLink) {
@@ -278,8 +357,8 @@ function buildWorkItemPage(project, partials) {
     // znacenje, a slobodan tekst ih moze sadrzati.
     // Bez teksta nestaje i sam red, da u stranici ne ostane prazan.
     .replace(/\{\{STORY_BLOCK\}\}\n?/, () => {
-      const block = renderStoryBlock(project.story);
-      return block ? block + "\n" : "";
+      const blocks = renderCaseBlocks(project);
+      return blocks ? blocks + "\n" : "";
     })
     .replace("{{LIVE_LINK_BLOCK}}", renderLiveLinkBlock(project.live_link))
     .replace("{{PROJECT_OVERVIEW}}", escapeHtml(project.project_overview || ""));
@@ -517,11 +596,11 @@ const STORY_DATA_RE = new RegExp(
   `<script type="application/json" id="${STORY_DATA_ID}">[\\s\\S]*?</script>\\n?`
 );
 
-function storyDataBlock(story) {
-  const paragraphs = storyParagraphs(story);
-  if (!paragraphs.length) return "";
-  // `<` kao <, da tekst ne moze da zatvori <script> tag.
-  const json = JSON.stringify({ label: STORY_LABEL, paragraphs }).replace(/</g, "\\u003c");
+function storyDataBlock(row) {
+  const sections = caseSections(row);
+  if (!sections.length) return "";
+  // `<` kao \u003c, da tekst ne moze da zatvori <script> tag.
+  const json = JSON.stringify({ sections }).replace(/</g, "\\u003c");
   return `<script type="application/json" id="${STORY_DATA_ID}">${json}</script>`;
 }
 
@@ -536,7 +615,7 @@ function writeLegacyStories() {
     const html = readIfExists(file);
     if (!html) continue;
 
-    const block = storyDataBlock(row.story);
+    const block = storyDataBlock(row);
     let next = html.replace(STORY_DATA_RE, "").replace(STORY_SCRIPT + "\n", "").replace(STORY_SCRIPT, "");
     if (block) next = next.replace("</body>", () => `${block}\n${STORY_SCRIPT}\n</body>`);
 
@@ -587,7 +666,7 @@ function main() {
   );
 
   const stories = writeLegacyStories();
-  if (stories.length) console.log(`tekst (${STORY_LABEL}) upisan u work/${stories.join(", work/")}`);
+  if (stories.length) console.log(`case study upisan u work/${stories.join(", work/")}`);
 
   const orphans = pruneOrphans(cmsProjects.map((p) => p.slug));
   if (orphans.length) console.log(`obrisano work/${orphans.join(", work/")} (nema projekat)`);
