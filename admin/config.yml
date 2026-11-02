@@ -1,6 +1,6 @@
 backend:
   name: github
-  repo: Chevu13/Deki-sajt
+  repo: dtumenko/dtumenko
   branch: main
   base_url: https://www.dtumenko.com
 

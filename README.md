@@ -37,16 +37,16 @@ api/auth.js, api/callback.js   GitHub OAuth za prijavu u /admin
 
 ## Deploy na Vercel preko GitHub-a
 
-Repo je [github.com/Chevu13/Deki-sajt](https://github.com/Chevu13/Deki-sajt), grana `main`:
+Repo je [github.com/dtumenko/dtumenko](https://github.com/dtumenko/dtumenko), grana `main`
+(do novembra 2026. bio je `Chevu13/Deki-sajt`):
 
 ```bash
-git remote add origin https://github.com/Chevu13/Deki-sajt.git
+git remote add origin https://github.com/dtumenko/dtumenko.git
 git push -u origin main
 ```
 
-Dejan radi kao **collaborator** na tom repou (Settings → Collaborators). To mu
-daje i push sa svog racunara i login u `/admin` — panel pise preko GitHub
-API-ja, pa mu treba write pravo na repo.
+Login u `/admin` radi svako ko ima write pravo na taj repo — panel piše preko
+GitHub API-ja. Drugi nalog se dodaje kroz Settings → Collaborators.
 
 1. Idi na [vercel.com/new](https://vercel.com/new), izaberi taj GitHub repo.
 2. Framework Preset: **Other**. Build Command i Output Directory ostavi prazne —
@@ -225,6 +225,13 @@ i panel ih ne dira — kao ni Contact/Privacy Policy/404.
    - Redeploy da se varijable primene.
 3. Otvori `https://www.dtumenko.com/admin`, klikni **Login with GitHub**,
    odobri pristup (scope `repo`) — panel je spreman.
+
+GitHub OAuth App prima samo jedan callback URL, i to sa `www`. Zato
+[vercel.json](vercel.json) preusmerava `dtumenko.com` na `www.dtumenko.com`: login
+otvoren sa adrese bez `www` bi inače pao na „redirect_uri is not associated".
+Env varijable vezane su za Vercel projekat. Ako se sajt prebaci na novi projekat
+(kao pri prelasku na `dtumenko/dtumenko`), treba ih ponovo upisati, i OAuth i
+Resend.
 
 Repo i grana su već upisani u [admin/index.html](admin/index.html)
 (`window.CMS_CONFIG`) i u [admin/config.yml](admin/config.yml).

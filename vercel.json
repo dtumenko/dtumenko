@@ -3,6 +3,14 @@
   "trailingSlash": false,
   "buildCommand": "npm run build",
   "outputDirectory": ".",
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "dtumenko.com" }],
+      "destination": "https://www.dtumenko.com/:path*",
+      "permanent": true
+    }
+  ],
   "headers": [
     {
       "source": "/assets/images/opt/(.*)",
