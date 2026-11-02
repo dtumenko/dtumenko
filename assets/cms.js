@@ -127,4 +127,27 @@
     }
   }
 
+  // Desna kolona prati skrol (sticky, top: 48px). Kad sa tekstom "Approach"
+  // postane visa od ekrana, sa top: 48px bi joj dno ostalo van slike sve do
+  // kraja galerije. Zato se tada lepi tek kad joj dno udje u sliku: top postaje
+  // negativan, pa kolona prvo odskroluje sa stranicom, a onda stane. Ista
+  // logika stoji u assets/project-story.js za originalne Framer stranice.
+  var info = document.querySelector(".cms-project__info");
+  if (info) {
+    var STICKY_GAP = 48;
+    var fitSticky = function () {
+      info.style.top = "";
+      // Ispod 810px kolona nije sticky (vidi cms.css) — nema sta da se racuna.
+      if (getComputedStyle(info).position !== "sticky") return;
+      var overflow = info.offsetHeight + STICKY_GAP * 2 - window.innerHeight;
+      if (overflow > 0) info.style.top = STICKY_GAP - overflow + "px";
+    };
+
+    fitSticky();
+    window.addEventListener("resize", fitSticky);
+    window.addEventListener("load", fitSticky);
+    // Visina zavisi od fonta: dok se Inter Display ne ucita, prelom je drugaciji.
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitSticky);
+  }
+
 })();

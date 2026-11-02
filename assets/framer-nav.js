@@ -270,9 +270,14 @@
   // vrati na genericki "Tumenko — Creative Director". Google izvrsava JS, pa bi
   // indeksirao prepisani naslov i SEO naslovi ne bi znacili nista.
   //
-  // Naslov iz HTML-a se zapamti pre nego sto runtime krene i vraca se kad god
-  // ga nesto promeni.
-  var wantedTitle = document.title;
+  // Naslov iz HTML-a se zapamti i vraca se kad god ga nesto promeni.
+  //
+  // Ne cita se iz document.title: Framer-ov script_main je `async` modul i iz
+  // kesa zna da hidrira PRE ovog `defer` skripta, pa bi se zapamtio vec
+  // prepisan naslov ("Cro Sea Villas - My Framer Site") i branio bi se on.
+  // og:title nosi isti naslov kao <title>, a Framer ga ne dira.
+  var ogTitle = document.querySelector('meta[property="og:title"]');
+  var wantedTitle = (ogTitle && ogTitle.getAttribute("content")) || document.title;
 
   function keepTitle() {
     if (document.title !== wantedTitle) document.title = wantedTitle;

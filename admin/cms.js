@@ -401,6 +401,7 @@
       year: data.year === 0 || data.year ? String(data.year) : "",
       overview: data.overview || "",
       projectOverview: data.project_overview || parsed.body.trim(),
+      story: data.story || "",
       liveLink: data.live_link || "",
       services: services.map(String),
       thumb: { src: data.hero_image || "", alt: "", match: data.hero_image || "" },
@@ -430,12 +431,14 @@
       year: item.year === "" ? undefined : Number(item.year),
       services: item.services.filter(Boolean),
       overview: item.overview,
+      story: String(item.story || "").trim(),
       live_link: item.liveLink || "",
       hero_image: item.thumb.src || "",
       hero_focus: item.heroFocus || "center",
       gallery: gallery,
     };
     if (data.year === undefined || isNaN(data.year)) delete data.year;
+    if (!data.story) delete data.story;
     return stringifyMarkdown(data, item.projectOverview);
   }
 
@@ -478,6 +481,9 @@
         };
       }),
       projectOverview: legacyField(manifest, "project_overview"),
+      // Tekst "Approach" Framer stranica nema — stoji u legacy-work.json, a
+      // scripts/build.mjs ga upisuje u stranicu (vidi assets/project-story.js).
+      story: row.story || "",
       liveLink: legacyField(manifest, "live_link"),
       services: [],
       cardImage: row.hero_image || "",
@@ -504,6 +510,7 @@
       year: item.year !== "" && !isNaN(year) ? year : undefined,
       overview: item.overview,
       hero_image: item.cardImage || item.thumb.src || "",
+      story: String(item.story || "").trim() || undefined,
       status: item.status === "Draft" ? "Draft" : undefined,
     };
   }
@@ -550,6 +557,7 @@
       year: String(new Date().getFullYear()),
       overview: "",
       projectOverview: "",
+      story: "",
       liveLink: "",
       services: ["", "", ""],
       thumb: { src: "", alt: "", match: "" },
@@ -1793,6 +1801,25 @@
         )
       );
     }
+
+    // Isto polje za obe vrste projekata. Kod CMS projekata ide u frontmatter
+    // (`story`), kod originalnih 6 u legacy-work.json — Framer stranica ga nema.
+    fields.push(
+      fieldRow(
+        "Approach",
+        el("textarea", {
+          class: "textarea",
+          rows: 10,
+          value: draft.story || "",
+          placeholder: "Sta je radjeno na projektu, koji su problemi bili i kako su reseni…",
+          oninput: function (event) {
+            draft.story = event.target.value;
+            markDirty();
+          },
+        }),
+        "2–3 paragrafa, odvojena praznim redom. Stoji desno na stranici projekta, ispod disciplina. Prazno polje — sekcija se ne prikazuje."
+      )
+    );
 
     fields.push(sectionRow("Images"));
 

@@ -175,14 +175,17 @@ function loadLegacyProjects() {
   );
 }
 
-function renderGalleryItems(gallery) {
+// Slike bez opisa iz panela dobijaju "Naslov projekta — image N" (sajt je na
+// engleskom). Prazan alt je za Google i citace ekrana isto sto i slika bez
+// ikakvog opisa.
+function renderGalleryItems(gallery, title) {
   if (!Array.isArray(gallery) || gallery.length === 0) return "";
   return gallery
-    .map((item) => {
+    .map((item, index) => {
       if (item.type === "video") {
         return `      <div class="cms-project__figure" data-cms-reveal${ratioStyle(item.src)}><video src="${escapeHtml(item.src)}" muted loop playsinline controls preload="metadata"></video></div>`;
       }
-      return `      <div class="cms-project__figure" data-cms-reveal${ratioStyle(item.src)}><img src="${escapeHtml(item.src)}" alt="${escapeHtml(item.alt || "")}" loading="lazy"></div>`;
+      return `      <div class="cms-project__figure" data-cms-reveal${ratioStyle(item.src)}><img src="${escapeHtml(item.src)}" alt="${escapeHtml(item.alt || `${title} — image ${index + 1}`)}" loading="lazy"></div>`;
     })
     .join("\n");
 }
@@ -205,6 +208,29 @@ function normalizeUrl(url) {
   if (!trimmed || /^(https?:)?\/\//i.test(trimmed) || trimmed.startsWith("/")) return trimmed;
   if (/^(mailto:|tel:)/i.test(trimmed)) return trimmed;
   return `https://${trimmed}`;
+}
+
+// Duzi opis rada (polje `story`): sta je radjeno, koji su problemi reseni.
+// Stoji desno, ispod disciplina. Paragrafi se u CMS-u odvajaju praznim redom.
+const STORY_LABEL = "Approach";
+
+function storyParagraphs(story) {
+  return String(story || "")
+    .split(/\r?\n\s*\r?\n/)
+    .map((paragraph) => paragraph.replace(/\s*\r?\n\s*/g, " ").trim())
+    .filter(Boolean);
+}
+
+function renderStoryBlock(story) {
+  const paragraphs = storyParagraphs(story);
+  if (!paragraphs.length) return "";
+  const body = paragraphs
+    .map((paragraph) => `        <p class="cms-info__text">${escapeHtml(paragraph)}</p>`)
+    .join("\n");
+  return (
+    `      <div class="cms-info__block cms-info__story" data-cms-reveal="tilt">\n` +
+    `        <p class="cms-info__label">${STORY_LABEL}</p>\n${body}\n      </div>`
+  );
 }
 
 function renderLiveLinkBlock(liveLink) {
@@ -245,9 +271,16 @@ function buildWorkItemPage(project, partials) {
     .replace("{{HERO_IMAGE}}", escapeHtml(project.hero_image || ""))
     .replace("{{HERO_FOCUS}}", focusPosition(project.hero_focus))
     .replace("{{HERO_ATTRS}}", heroAttrs(project.hero_image))
-    .replace("{{GALLERY_ITEMS}}", renderGalleryItems(project.gallery))
+    .replace("{{GALLERY_ITEMS}}", renderGalleryItems(project.gallery, project.title))
     .replace("{{YEAR}}", escapeHtml(project.year || ""))
     .replace("{{SERVICE_LIST}}", renderServiceList(project.services))
+    // Funkcija, ne string: u zamenskom stringu `$&` i `$'` imaju posebno
+    // znacenje, a slobodan tekst ih moze sadrzati.
+    // Bez teksta nestaje i sam red, da u stranici ne ostane prazan.
+    .replace(/\{\{STORY_BLOCK\}\}\n?/, () => {
+      const block = renderStoryBlock(project.story);
+      return block ? block + "\n" : "";
+    })
     .replace("{{LIVE_LINK_BLOCK}}", renderLiveLinkBlock(project.live_link))
     .replace("{{PROJECT_OVERVIEW}}", escapeHtml(project.project_overview || ""));
 }
@@ -471,6 +504,48 @@ function writeHomeOrder(order) {
   return ranked;
 }
 
+// Originalnih 6 su Framer stranice: tekst ne moze da se upise u njihov markup,
+// jer React posle hidracije prezida desnu kolonu iz svojih propova. Zato build
+// upisuje `story` iz legacy-work.json kao JSON blok u stranicu, a
+// assets/project-story.js ga posle hidracije ubacuje ispod disciplina — isti
+// put kojim idu i dodatne slike (assets/legacy-gallery.js).
+//
+// Tekst se pise i Draft projektima: njihova stranica ostaje na svom URL-u.
+const STORY_DATA_ID = "cms-story";
+const STORY_SCRIPT = '<script src="/assets/project-story.js" defer></script>';
+const STORY_DATA_RE = new RegExp(
+  `<script type="application/json" id="${STORY_DATA_ID}">[\\s\\S]*?</script>\\n?`
+);
+
+function storyDataBlock(story) {
+  const paragraphs = storyParagraphs(story);
+  if (!paragraphs.length) return "";
+  // `<` kao <, da tekst ne moze da zatvori <script> tag.
+  const json = JSON.stringify({ label: STORY_LABEL, paragraphs }).replace(/</g, "\\u003c");
+  return `<script type="application/json" id="${STORY_DATA_ID}">${json}</script>`;
+}
+
+function writeLegacyStories() {
+  const raw = readIfExists(LEGACY_FILE);
+  if (!raw) return [];
+
+  const written = [];
+  for (const row of JSON.parse(raw)) {
+    if (!row.slug) continue;
+    const file = path.join(ROOT, "work", row.slug, "index.html");
+    const html = readIfExists(file);
+    if (!html) continue;
+
+    const block = storyDataBlock(row.story);
+    let next = html.replace(STORY_DATA_RE, "").replace(STORY_SCRIPT + "\n", "").replace(STORY_SCRIPT, "");
+    if (block) next = next.replace("</body>", () => `${block}\n${STORY_SCRIPT}\n</body>`);
+
+    if (next !== html) fs.writeFileSync(file, next, "utf8");
+    if (block) written.push(row.slug);
+  }
+  return written;
+}
+
 function main() {
   const cmsProjects = loadProjects();
   const legacyProjects = loadLegacyProjects();
@@ -510,6 +585,9 @@ function main() {
     `built  work/index.html (${listedProjects.length} kartica, ` +
       `${allProjects.length - listedProjects.length} nelistirano)`
   );
+
+  const stories = writeLegacyStories();
+  if (stories.length) console.log(`tekst (${STORY_LABEL}) upisan u work/${stories.join(", work/")}`);
 
   const orphans = pruneOrphans(cmsProjects.map((p) => p.slug));
   if (orphans.length) console.log(`obrisano work/${orphans.join(", work/")} (nema projekat)`);

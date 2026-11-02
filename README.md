@@ -657,3 +657,54 @@ Tri zamke:
 Na sirokim ekranima Framer menja varijantu sekcije, pa oznake odu sa starim
 cvorovima. Vraca ih `MutationObserver`, preko tajmera a ne
 `requestAnimationFrame` — rAF ume da bude uspavan dok se kartica ne iscrtava.
+
+## Tekst "Approach" na stranici projekta
+
+Desno, ispod Overview-a i disciplina, stoji opcioni blok **Approach**: 2–3
+paragrafa o tome sta je radjeno na projektu i koji su problemi reseni. U panelu
+je to polje **Approach** (posle Year), isto za obe vrste projekata. Paragrafi se
+odvajaju praznim redom; prazno polje znaci da se blok ne prikazuje.
+
+| | gde stoji tekst | ko ga stavlja na stranicu |
+|---|---|---|
+| CMS projekti | `story` u frontmatteru `content/work/*.md` | `scripts/build.mjs`, kroz `{{STORY_BLOCK}}` u `templates/work-item.html` |
+| originalnih 6 | `story` u `content/legacy-work.json` | `scripts/build.mjs` upise JSON u `<script id="cms-story">` na stranici, a [assets/project-story.js](assets/project-story.js) ga ubaci posle hidracije |
+
+Kod originalnih 6 je to isti put kao za dodatne slike: Framer komponenta nema
+polje za taj tekst, a markup dodat u izvor React posle hidracije skloni. Skript
+klonira Framer-ov blok "Overview", pa tekst nasledjuje iste klase (font,
+velicinu, prelomne tacke), i ubacuje ga iza bloka sa disciplinama. Blok se trazi
+po tekstu oznake "Overview", a discipline po `data-framer-name="Service Row"` —
+ne po klasama, koje se menjaju sa svakim exportom.
+
+Desna kolona je sticky (`top: 48px`). Sa tekstom ume da postane visa od ekrana,
+pa bi joj dno ostalo van slike sve do kraja galerije. Zato `assets/cms.js` (CMS
+stranice) i `project-story.js` (Framer stranice) tada racunaju negativan `top`:
+kolona prvo odskroluje sa stranicom, a zalepi se tek kad joj dno udje u sliku.
+
+Oznaka "Approach" je konstanta `STORY_LABEL` u `scripts/build.mjs`.
+
+## Popravke — pregled sajta (nov 2026)
+
+- **Naslov u tabu "… - My Framer Site".** Framer-ov `script_main` je `async`
+  modul i iz kesa zna da hidrira pre `framer-nav.js`, koji je onda zapamtio vec
+  prepisan naslov i branio njega. Naslov se sad cita iz `og:title`, koji je
+  isti kao `<title>` a Framer ga ne dira.
+- **About, usluge na telefonu bile odsecene.** Framer je opisu u mobilnoj
+  varijanti zakucao `width: 600px` i `height: 54px`, uz `overflow: hidden` na
+  redu. Popravka je `<style id="cms-about-services">` u `about/index.html`.
+- **"Live Work" vodio na framer.com** (Adria Design Biennale, Nordarch Studio,
+  Vellor Residency — vrednost iz Framer sablona). `<style id="cms-placeholder-link">`
+  na svih 6 Framer stranica sakriva link sa tim href-om; kad se u panelu upise
+  pravi Live Link, dugme se samo vrati. U selektoru namerno nema `"framer.com"`
+  bez protokola: panel pri izmeni Live Link-a menja svaki `"stara vrednost"` u
+  HTML-u, pa bi prepisao i selektor.
+- **Podnozje na /work i CMS projektima, na telefonu.** `templates/_footer.html`
+  je Framer-ova Desktop varijanta, pa su Social, Sitemap i Privacy Policy
+  ostajali desno van ekrana. `assets/cms.css` ga ispod 810px slaze u stubac, sa
+  merama Framer-ove Phone varijante.
+- **Hero CMS projekta na telefonu.** Nizak hero (prati odnos slike) je drzao
+  "View All" i naslov ispod fiksne navigacije — "View All" se crtao preko
+  logoa. Dobio je gornji padding.
+- **Alt tekst u galerijama CMS projekata.** Slika bez opisa iz panela dobija
+  "Naslov projekta — image N" umesto praznog `alt`.

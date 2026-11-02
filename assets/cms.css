@@ -509,6 +509,56 @@ body {
     font-size: 38px;
   }
 
+  /* Hero koji prati odnos slike je na telefonu nizak (~260px za 3:2), pa su
+     "View All" i naslov, centrirani u njemu, dolazili ispod fiksne navigacije —
+     "View All" se crtao preko logoa. Gornji padding drzi sadrzaj ispod trake
+     (68px), a hero i dalje raste koliko naslov trazi (min-height: min-content). */
+  .cms-hero--fit {
+    padding-top: 84px;
+  }
+
+  /* Podnozje u templates/_footer.html je Framer-ova Desktop varijanta (red sa
+     fiksnim sirinama). Na telefonu su Social, Sitemap i Privacy Policy zato
+     ostajali desno van ekrana, odseceni sa overflow: hidden. Ovde se slaze u
+     stubac, sa merama Framer-ove Phone varijante (vidi /contact na 390px).
+     !important jer Framer klase (.framer-X .framer-Y) imaju jaci selektor. */
+  footer[data-framer-name="Desktop"] {
+    padding: 64px 16px 16px !important;
+  }
+
+  footer[data-framer-name="Desktop"] [data-framer-name="Top"] {
+    flex-direction: column !important;
+    gap: 64px !important;
+    height: auto !important;
+    padding: 16px !important;
+  }
+
+  footer[data-framer-name="Desktop"] [data-framer-name="Content"],
+  footer[data-framer-name="Desktop"] form,
+  footer[data-framer-name="Desktop"] form > label {
+    width: 100% !important;
+  }
+
+  footer[data-framer-name="Desktop"] [data-framer-name="Footer List Wrapper"] {
+    flex-direction: column !important;
+    gap: 32px !important;
+    height: auto !important;
+  }
+
+  footer[data-framer-name="Desktop"] [data-framer-name="Bottom"] {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 32px !important;
+    height: auto !important;
+    padding: 16px !important;
+  }
+
+  footer[data-framer-name="Desktop"] [data-framer-name="Bottom"] > [data-framer-name="Item"]:first-child {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 16px !important;
+  }
+
   .cms-project {
     grid-template-columns: minmax(0, 1fr);
     gap: 32px;

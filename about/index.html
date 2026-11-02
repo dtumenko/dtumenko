@@ -154,6 +154,8 @@
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"Person","name":"Dejan Tumenko","url":"https://www.dtumenko.com/","jobTitle":"Creative Director","image":"https://www.dtumenko.com/assets/meta/meta-492d77f9.jpg","sameAs":["https://www.instagram.com/dtumenko/","https://www.linkedin.com/in/dtumenko/","https://dribbble.com/dtumenko","https://www.behance.net/dtumenko"],"address":{"@type":"PostalAddress","addressLocality":"Belgrade","addressCountry":"RS"}}
 </script>
+<!-- Usluge na mobilnom: Framer je opisu u mobilnoj varijanti zakucao width 600px i height 54px, uz overflow: hidden na redu, pa je tekst bio odsecen sa desne strane. Pusta se sirina reda i visina teksta. Selektor ide preko data-framer-name, jer se klase menjaju sa svakim exportom. -->
+<style id="cms-about-services">[data-framer-name="Mobile"]>[data-framer-name="Text Container"],[data-framer-name="Mobile"]>[data-framer-name="Text Container"]>*{flex:0 0 auto!important;width:100%!important;height:auto!important}</style>
 </head>
 <body>
 <h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">About Dejan Tumenko — Creative Director</h1>

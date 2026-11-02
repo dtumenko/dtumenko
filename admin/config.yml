@@ -22,6 +22,7 @@ collections:
       - { label: "Year", name: "year", widget: "number", value_type: "int" }
       - { label: "Services / Discipline", name: "services", widget: "list", default: ["Brand Identity"] }
       - { label: "Overview", name: "overview", widget: "text", hint: "Short summary shown on the Work list card." }
+      - { label: "Approach", name: "story", widget: "text", required: false, hint: "2-3 paragraphs separated by a blank line. Shown on the right, under the disciplines." }
       - { label: "Live Link", name: "live_link", widget: "string", required: false }
       - { label: "Hero Image", name: "hero_image", widget: "image" }
       - label: "Gallery"
