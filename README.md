@@ -734,4 +734,3 @@ Nazivi sekcija su u `caseSections()` u `scripts/build.mjs`.
 - Naslov, opis, og/twitter i JSON-LD svake stranice su u njenom `<head>`. Za CMS projekte ih pravi `scripts/build.mjs` (`renderHead`, `projectSchema`). Naslov projekta glasi „Naziv — prva usluga | Dejan Tumenko", a opis se uzima iz Overview polja.
 - Na svim stranicama je schema `WebSite` + `Person` (jobTitle „Brand Designer"). Projekti uz to imaju i `CreativeWork` + `BreadcrumbList`.
 - Slika za deljenje projekta je `assets/og/<slug>.jpg` (1200×630, do ~200 KB). Ako je nema, koristi se hero slika, i to samo ako je jpg/png. Novom projektu je dobro dodati svoju og sliku.
-- Favicon: `/favicon.ico` (16/32/48) i `assets/icons/` (96, apple-touch 180, 192/512 za `site.webmanifest`). Crna pozadina, beli potpis na 60 % širine, da ostane i u Google-ovom krugu.
