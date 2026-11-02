@@ -322,8 +322,14 @@ function renderLiveLinkBlock(liveLink) {
 // {{CANONICAL}} feeds <link rel="canonical">, og:url and the JSON-LD block in
 // templates/_head.html. canonicalPath is the clean, root-absolute path of the
 // generated page ("/work", "/work/<slug>") — matches vercel.json cleanUrls.
-function renderHead(headPartial, title, description, canonicalPath, noindex) {
+// {{OG_IMAGE}} je slika za deljenje (og/twitter), {{PAGE_SCHEMA}} dodatni
+// JSON-LD stranice (kod projekata CreativeWork + breadcrumbs).
+const DEFAULT_OG_IMAGE = SITE_URL + "/assets/meta/meta-492d77f9.jpg";
+
+function renderHead(headPartial, title, description, canonicalPath, noindex, extra = {}) {
   return headPartial
+    .replace(/\{\{OG_IMAGE\}\}/g, escapeHtml(extra.image || DEFAULT_OG_IMAGE))
+    .replace(/\{\{PAGE_SCHEMA\}\}\n?/g, () => (extra.schema ? jsonLd(extra.schema) + "\n" : ""))
     .replace(/\{\{TITLE\}\}/g, escapeHtml(title))
     .replace(/\{\{DESCRIPTION\}\}/g, escapeHtml(description || ""))
     .replace(/\{\{CANONICAL\}\}/g, escapeHtml(SITE_URL + canonicalPath))
@@ -333,13 +339,62 @@ function renderHead(headPartial, title, description, canonicalPath, noindex) {
     );
 }
 
+function jsonLd(data) {
+  return `<script type="application/ld+json">\n${JSON.stringify(data).replace(/</g, "\\u003c")}\n</script>`;
+}
+
+// Slika za deljenje: assets/og/<slug>.jpg (1200x630, lagana — WhatsApp i
+// LinkedIn ne prikazu preview za teske slike), inace hero ako je jpg/png.
+function shareImage(slug, src) {
+  if (fs.existsSync(path.join(ROOT, "assets/og", `${slug}.jpg`))) return `${SITE_URL}/assets/og/${slug}.jpg`;
+  if (!src || !/\.(jpe?g|png)$/i.test(src)) return DEFAULT_OG_IMAGE;
+  return /^https?:/.test(src) ? src : SITE_URL + src;
+}
+
+function projectSchema(project, url, image) {
+  const services = Array.isArray(project.services) ? project.services.map(String) : [];
+  const work = {
+    "@type": "CreativeWork",
+    "@id": `${url}#work`,
+    name: project.title,
+    description: project.overview || "",
+    url,
+    image,
+    creator: { "@id": `${SITE_URL}/#person` },
+    inLanguage: "en",
+  };
+  if (services.length) work.keywords = services.join(", ");
+  if (project.year) work.dateCreated = String(project.year);
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      work,
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: `${SITE_URL}/` },
+          { "@type": "ListItem", position: 2, name: "Work", item: `${SITE_URL}/work` },
+          { "@type": "ListItem", position: 3, name: project.title, item: url },
+        ],
+      },
+    ],
+  };
+}
+
 function buildWorkItemPage(project, partials) {
+  // Prva usluga ide u naslov ("Tripković Gazdinstvo — Brand Identity | ..."),
+  // isto kao kod originalnih 6 projekata.
+  const firstService =
+    Array.isArray(project.services) && project.services.length ? String(project.services[0]) : "";
+  const url = `${SITE_URL}/work/${project.slug}`;
+  const image = shareImage(project.slug, project.hero_image);
   const head = renderHead(
     partials.head,
-    `${project.title} — Dejan Tumenko`,
+    firstService ? `${project.title} — ${firstService} | Dejan Tumenko` : `${project.title} — Dejan Tumenko`,
     project.overview,
     `/work/${project.slug}`,
-    project.noindex
+    project.noindex,
+    { image, schema: projectSchema(project, url, image) }
   );
 
   return partials.workItemTemplate
@@ -398,8 +453,8 @@ function buildCardGrid(projects) {
 function buildWorkListPage(allProjects, partials) {
   const head = renderHead(
     partials.head,
-    "Works — Dejan Tumenko, Creative Director",
-    "Selected branding, art direction, and visual identity projects by Dejan Tumenko, Belgrade-based Creative Director.",
+    "Work — Brand Identity & Packaging Design | Dejan Tumenko",
+    "Selected brand identity, packaging, art direction and web design projects by Dejan Tumenko, a Belgrade-based brand designer.",
     "/work"
   );
   return partials.workListTemplate

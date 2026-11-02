@@ -266,8 +266,8 @@
   /* --------------------------------------------------------------- naslov */
 
   // Framer posle hidracije prepise <title> naslovom iz svojih podataka: na
-  // /about je u HTML-u "About — Dejan Tumenko, Creative Director", a runtime ga
-  // vrati na genericki "Tumenko — Creative Director". Google izvrsava JS, pa bi
+  // /about je u HTML-u "About — Dejan Tumenko, Brand Designer", a runtime ga
+  // vrati na genericki "Tumenko — Brand Designer". Google izvrsava JS, pa bi
   // indeksirao prepisani naslov i SEO naslovi ne bi znacili nista.
   //
   // Naslov iz HTML-a se zapamti i vraca se kad god ga nesto promeni.
