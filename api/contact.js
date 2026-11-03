@@ -10,11 +10,12 @@
 //   RESEND_API_KEY   obavezno — kljuc iz Resend naloga
 //   CONTACT_TO       gde stizu poruke (podrazumevano hi@dtumenko.com)
 //   CONTACT_FROM     posiljalac; mora biti sa domena potvrdjenog u Resend-u
+//                    (dtumenko.com je potvrdjen, pa je podrazumevani sa njega)
 //
 // Adresa posetioca ide u `reply_to`, pa se na poruku odgovara obicnim Reply.
 
 const DEFAULT_TO = "hi@dtumenko.com";
-const DEFAULT_FROM = "Sajt <onboarding@resend.dev>";
+const DEFAULT_FROM = "dtumenko.com <website@dtumenko.com>";
 
 // Polja koja popuni samo bot; posetilac ih ne vidi. Framer ih vec ima u formi.
 const HONEYPOTS = [
