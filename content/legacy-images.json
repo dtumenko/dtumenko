@@ -414,36 +414,36 @@
         "key": "project_overview",
         "field": "qHx5bRsBk",
         "label": "Project Overview",
-        "rows": 6,
-        "value": "Nordarch Studio is a Belgrade-based architecture firm with a Nordic design philosophy — where structure meets restraint. The brief called for a visual identity that communicates authority, precision, and timelessness. The resulting brand system draws from raw textures, muted tones, and tight typographic hierarchy — reflecting the studio's approach to space and form. Every touchpoint, from business cards to digital presence, was crafted to feel intentional and enduring. The identity positions Nordarch as a studio that doesn't follow trends — it defines them."
+        "value": "Nordarch Studio is a Belgrade-based architecture firm with a Nordic design philosophy — where structure meets restraint. The brief called for a visual identity that communicates authority, precision, and timelessness. The resulting brand system draws from raw textures, muted tones, and tight typographic hierarchy — reflecting the studio's approach to space and form. Every touchpoint, from business cards to digital presence, was crafted to feel intentional and enduring. The identity positions Nordarch as a studio that doesn't follow trends — it defines them.",
+        "rows": 6
       },
       {
         "key": "service1",
         "field": "ES3pqjhrn",
         "label": "Service 1",
-        "rows": 1,
-        "value": "Art Direction"
+        "value": "Art Direction",
+        "rows": 1
       },
       {
         "key": "service2",
         "field": "rc8P13D3Q",
         "label": "Service 2",
-        "rows": 1,
-        "value": "Brand Identity"
+        "value": "Brand Identity",
+        "rows": 1
       },
       {
         "key": "service3",
         "field": "vdUCargUV",
         "label": "Service 3",
-        "rows": 1,
-        "value": "Creative Direction"
+        "value": "Creative Direction",
+        "rows": 1
       },
       {
         "key": "live_link",
         "field": "E3vtRy1Vd",
         "label": "Live Link",
-        "rows": 1,
-        "value": "framer.com"
+        "value": "framer.com",
+        "rows": 1
       }
     ]
   },
