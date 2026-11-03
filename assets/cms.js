@@ -3,6 +3,18 @@
 (function () {
   "use strict";
 
+  // Linkovi se ne prevlace. Kad se mis pomeri par piksela dok je taster
+  // pritisnut, browser pokrene prevlacenje linka i klik se izgubi — pa je
+  // izgledalo kao da meni ne reaguje. Chrome/Safari to gase kroz cms.css
+  // (-webkit-user-drag), Firefox ovde.
+  document.addEventListener(
+    "dragstart",
+    function (event) {
+      if (event.target.closest && event.target.closest("a[href]")) event.preventDefault();
+    },
+    true
+  );
+
   // Mobile menu overlay
   var menuBtn = document.querySelector("[data-cms-menu-open]");
   var overlay = document.querySelector("[data-cms-menu-overlay]");

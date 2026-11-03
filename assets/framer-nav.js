@@ -102,6 +102,27 @@
 
   document.addEventListener("click", onClick, true);
 
+  /* ------------------------------------------------------------ prevlacenje */
+
+  // Link se u browseru moze prevuci (drag). Ako se mis pomeri vise od ~4px
+  // dok je taster pritisnut — sto se na touchpadu ili u brzom pokretu desava
+  // stalno — browser to tumaci kao pocetak prevlacenja i klik se nikad ne
+  // desi. Linkovi u meniju su mali (oko 40x22px), pa je izgledalo kao da
+  // dugme ne reaguje dok se ne klikne vise puta.
+  //
+  // CSS gasi prevlacenje u Chrome-u i Safariju, dragstart u Firefox-u.
+  var noDrag = document.createElement("style");
+  noDrag.textContent = "a[href]{-webkit-user-drag:none}";
+  document.head.appendChild(noDrag);
+
+  document.addEventListener(
+    "dragstart",
+    function (event) {
+      if (linkFor(event.target)) event.preventDefault();
+    },
+    true
+  );
+
   /* --------------------------------------------------------------- dodir */
 
   // Stranice koriste Lenis smooth scroll. Dok stranica jos klizi po inerciji,

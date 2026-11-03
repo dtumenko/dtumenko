@@ -13,6 +13,12 @@ body {
   background: rgb(15, 15, 15);
 }
 
+/* Bez prevlacenja linkova: pomeranje misa od par piksela tokom klika bi
+   pokrenulo drag i klik bi se izgubio. Firefox — vidi cms.js. */
+a[href] {
+  -webkit-user-drag: none;
+}
+
 .cms-main {
   background: rgb(15, 15, 15);
   color: rgb(238, 238, 238);
