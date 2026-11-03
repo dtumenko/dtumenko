@@ -60,36 +60,36 @@
         "key": "project_overview",
         "field": "qHx5bRsBk",
         "label": "Project Overview",
-        "rows": 6,
-        "value": "This art direction project distills the spirit of a premier Adriatic villa retreat into a complete visual identity. Crisp whites, deep navies, and Mediterranean light guide every design decision — from branded amenities to social presence. The result is a refined, consistent brand world that speaks directly to the luxury traveler seeking privacy, elegance, and the magic of the Croatian coast."
+        "value": "This art direction project distills the spirit of a premier Adriatic villa retreat into a complete visual identity. Crisp whites, deep navies, and Mediterranean light guide every design decision — from branded amenities to social presence. The result is a refined, consistent brand world that speaks directly to the luxury traveler seeking privacy, elegance, and the magic of the Croatian coast.",
+        "rows": 6
       },
       {
         "key": "service1",
         "field": "ES3pqjhrn",
         "label": "Service 1",
-        "rows": 1,
-        "value": "Art Direction"
+        "value": "Art Direction",
+        "rows": 1
       },
       {
         "key": "service2",
         "field": "rc8P13D3Q",
         "label": "Service 2",
-        "rows": 1,
-        "value": "Brand Identity"
+        "value": "Brand Identity",
+        "rows": 1
       },
       {
         "key": "service3",
         "field": "vdUCargUV",
         "label": "Service 3",
-        "rows": 1,
-        "value": "Digital Marketing"
+        "value": "Digital Marketing",
+        "rows": 1
       },
       {
         "key": "live_link",
         "field": "E3vtRy1Vd",
         "label": "Live Link",
-        "rows": 1,
-        "value": "https://croseavillas.hr/"
+        "value": "https://croseavillas.hr/",
+        "rows": 1
       }
     ]
   },
