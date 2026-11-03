@@ -143,36 +143,36 @@
         "key": "project_overview",
         "field": "qHx5bRsBk",
         "label": "Project Overview",
-        "rows": 6,
-        "value": "Falco Gin is a handcrafted Swiss premium spirit defined by character, precision, and a bold sensory identity. Distilled in small batches and refined with a unique blend of botanicals and exotic fruits, the brand balances tradition with a contemporary edge. This project focused on translating that identity into a tactile, editorial experience. Through art direction and booklet design, the goal was to create a visual narrative that reflects the essence of Falco — raw, refined, and unapologetically expressive."
+        "value": "Falco Gin is a handcrafted Swiss premium spirit defined by character, precision, and a bold sensory identity. Distilled in small batches and refined with a unique blend of botanicals and exotic fruits, the brand balances tradition with a contemporary edge. This project focused on translating that identity into a tactile, editorial experience. Through art direction and booklet design, the goal was to create a visual narrative that reflects the essence of Falco — raw, refined, and unapologetically expressive.",
+        "rows": 6
       },
       {
         "key": "service1",
         "field": "ES3pqjhrn",
         "label": "Service 1",
-        "rows": 1,
-        "value": "Editorial Design"
+        "value": "Editorial Design",
+        "rows": 1
       },
       {
         "key": "service2",
         "field": "rc8P13D3Q",
         "label": "Service 2",
-        "rows": 1,
-        "value": "Print Design"
+        "value": "Print Design",
+        "rows": 1
       },
       {
         "key": "service3",
         "field": "vdUCargUV",
         "label": "Service 3",
-        "rows": 1,
-        "value": "Art Direction"
+        "value": "Art Direction",
+        "rows": 1
       },
       {
         "key": "live_link",
         "field": "E3vtRy1Vd",
         "label": "Live Link",
-        "rows": 1,
-        "value": "https://www.falcogin.com/"
+        "value": "https://www.falcogin.com/",
+        "rows": 1
       }
     ]
   },
