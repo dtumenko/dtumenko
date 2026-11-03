@@ -333,36 +333,36 @@
         "key": "project_overview",
         "field": "qHx5bRsBk",
         "label": "Project Overview",
-        "rows": 6,
-        "value": "The brand was created from the ground up to position Pletho as a forward-thinking, human-centered technology company. Rather than emphasizing limitation, the identity communicates empowerment, precision, and calm support through design.\n\nSPN1 is Pletho's flagship product — an ambient eating device engineered for accessibility without compromising on form. This project extends the Pletho brand system into physical product design, developing a distinct visual identity across packaging, product photography, and marketing materials for the device itself."
+        "value": "The brand was created from the ground up to position Pletho as a forward-thinking, human-centered technology company. Rather than emphasizing limitation, the identity communicates empowerment, precision, and calm support through design.\n\nSPN1 is Pletho's flagship product — an ambient eating device engineered for accessibility without compromising on form. This project extends the Pletho brand system into physical product design, developing a distinct visual identity across packaging, product photography, and marketing materials for the device itself.",
+        "rows": 6
       },
       {
         "key": "service1",
         "field": "ES3pqjhrn",
         "label": "Service 1",
-        "rows": 1,
-        "value": "Creative Direction"
+        "value": "Creative Direction",
+        "rows": 1
       },
       {
         "key": "service2",
         "field": "rc8P13D3Q",
         "label": "Service 2",
-        "rows": 1,
-        "value": "Product Marketing"
+        "value": "Product Marketing",
+        "rows": 1
       },
       {
         "key": "service3",
         "field": "vdUCargUV",
         "label": "Service 3",
-        "rows": 1,
-        "value": "Brand Identity"
+        "value": "Brand Identity",
+        "rows": 1
       },
       {
         "key": "live_link",
         "field": "E3vtRy1Vd",
         "label": "Live Link",
-        "rows": 1,
-        "value": "https://www.pletho.life/"
+        "value": "https://www.pletho.life/",
+        "rows": 1
       }
     ]
   },
