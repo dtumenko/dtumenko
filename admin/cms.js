@@ -985,7 +985,7 @@
             },
             [
               el("span", { text: item.title || "Bez naslova" }),
-              item.kind === "legacy" ? el("span", { class: "rail__badge", text: "Framer" }) : null,
+              item.kind === "legacy" ? el("span", { class: "rail__badge", text: "Original" }) : null,
             ]
           );
         })
@@ -1137,7 +1137,7 @@
           state.order.work,
           index,
           item.title || item.slug,
-          item.kind === 'legacy' ? 'Framer' : null,
+          item.kind === 'legacy' ? 'Original' : null,
           function () {
             render();
           }
@@ -1180,7 +1180,7 @@
           class: 'ord__hint',
           text:
             'Redosled cetiri kartice na dnu naslovne. Koje su to kartice dolazi iz ' +
-            'Framer export-a i ne menja se odavde — menja se samo njihov raspored.',
+            'originalnog izvoza i ne menja se odavde — menja se samo njihov raspored.',
         }),
         homeList,
       ]),
@@ -1664,8 +1664,8 @@
         el("p", {
           class: "field__hint",
           text:
-            "Ovo je originalna Framer stranica. Odavde se menjaju slike i tekst; " +
-            "raspored i animacije dolaze iz Framer export-a.",
+            "Ovo je jedna od originalnih stranica. Odavde se menjaju slike i tekst; " +
+            "raspored i animacije su fiksni u samoj stranici.",
         })
       )
     );
@@ -1729,7 +1729,7 @@
           ]
         ),
         isLegacy && draft.status === "Draft"
-          ? "Draft sklanja karticu sa /work i iz sitemap-a. Sama stranica ostaje dostupna na direktan link jer je staticki Framer export."
+          ? "Draft sklanja karticu sa /work i iz sitemap-a. Sama stranica ostaje dostupna na direktan link jer je staticka stranica."
           : null
       )
     );
@@ -1752,7 +1752,7 @@
             event.target.value = draft.slug;
           },
         }),
-        isLegacy ? "Slug je zakucan uz postojecu Framer stranicu." : null,
+        isLegacy ? "Slug je zakucan uz postojecu stranicu." : null,
         el("p", { class: "field__hint", "data-slug-hint": "1" }, [
           el("span", { html: ICONS.globe }),
           el("span", { text: prettyUrl(draft.slug) }),
@@ -2111,7 +2111,7 @@
           [el("span", { html: ICONS.plus }), el("span", { text: "Dodaj sliku" })]
         ),
         isLegacy
-          ? "Galerija moze da ima koliko god slika treba. Prvih sest su Framer-ova polja; sve preko toga dodaje sajt sam pri ucitavanju stranice."
+          ? "Galerija moze da ima koliko god slika treba. Prvih sest su fiksna polja stranice; sve preko toga dodaje sajt sam pri ucitavanju stranice."
           : "Galerija moze da ima koliko god slika treba — tri, deset, svejedno."
       )
     );
@@ -2125,9 +2125,9 @@
           el("p", {
             class: "field__hint",
             text:
-              "Ovo je originalna Framer stranica. Slike i tekst kartice se menjaju " +
-              "odavde; raspored i animacije same stranice dolaze iz Framer export-a. " +
-              "Prvih sest slika su Framer-ova polja i ona ostaju u izvoru: × ih sklanja " +
+              "Ovo je jedna od originalnih stranica. Slike i tekst kartice se menjaju " +
+              "odavde; raspored i animacije su fiksni u samoj stranici. " +
+              "Prvih sest slika su fiksna polja stranice i ona ostaju u izvoru: × ih sklanja " +
               "sa stranice, a dugme Vrati ih vraca. Sedmu i dalje ubacuje sajt sam, " +
               "pri ucitavanju stranice. Novi projekti nemaju to ogranicenje.",
           })
@@ -3041,7 +3041,7 @@
   function deleteItem(item) {
     var extra =
       item.kind === "legacy"
-        ? "\n\nBrise se i sama Framer stranica work/" + item.slug + "/index.html."
+        ? "\n\nBrise se i sama stranica work/" + item.slug + "/index.html."
         : "";
     if (!confirm('Obrisati "' + item.title + '"?' + extra)) return;
 
