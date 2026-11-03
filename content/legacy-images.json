@@ -498,36 +498,36 @@
         "key": "project_overview",
         "field": "qHx5bRsBk",
         "label": "Project Overview",
-        "rows": 6,
-        "value": "Vellor Residency is a contemporary residential development designed for modern urban living — a gated complex offering luxury apartments, private amenities, and rooftop penthouses, set for completion in 2028. The brief called for a brand identity that communicates architectural clarity, long-term value, and structural reliability — appealing equally to future residents and investors. The resulting visual system draws from a restrained palette of Gunmetal, Cadet Grey, and Light Blue, paired with Proxima Nova to balance authority with approachability. From construction signage and outdoor advertising to sales materials and digital presence, every touchpoint was crafted to position Vellor as more than a place to live — as a statement of intent."
+        "value": "Vellor Residency is a contemporary residential development designed for modern urban living — a gated complex offering luxury apartments, private amenities, and rooftop penthouses, set for completion in 2028. The brief called for a brand identity that communicates architectural clarity, long-term value, and structural reliability — appealing equally to future residents and investors. The resulting visual system draws from a restrained palette of Gunmetal, Cadet Grey, and Light Blue, paired with Proxima Nova to balance authority with approachability. From construction signage and outdoor advertising to sales materials and digital presence, every touchpoint was crafted to position Vellor as more than a place to live — as a statement of intent.",
+        "rows": 6
       },
       {
         "key": "service1",
         "field": "ES3pqjhrn",
         "label": "Service 1",
-        "rows": 1,
-        "value": "Brand Identity"
+        "value": "Brand Identity",
+        "rows": 1
       },
       {
         "key": "service2",
         "field": "rc8P13D3Q",
         "label": "Service 2",
-        "rows": 1,
-        "value": "Digital Marketing"
+        "value": "Digital Marketing",
+        "rows": 1
       },
       {
         "key": "service3",
         "field": "vdUCargUV",
         "label": "Service 3",
-        "rows": 1,
-        "value": "Art Direction"
+        "value": "Art Direction",
+        "rows": 1
       },
       {
         "key": "live_link",
         "field": "E3vtRy1Vd",
         "label": "Live Link",
-        "rows": 1,
-        "value": "framer.com"
+        "value": "framer.com",
+        "rows": 1
       }
     ]
   }
