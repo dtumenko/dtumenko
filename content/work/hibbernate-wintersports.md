@@ -6,7 +6,7 @@ year: 2018
 services:
   - Brand Identity
   - Creative Direction
-  - Adverstment Design
+  - Advertising Design
 overview: A Canadian outerwear label engineered for Edmonton's harshest winters, built to keep you protected through blizzards, layer after layer.
 challenge: 'Outdoor clothing is one of the most crowded categories in fashion, and most brands look the same: mountains, gradients and technical jargon. The brief I set myself was to create a winter label that feels as tough as the conditions it is made for, but with a sharper, more graphic personality, one that could stand out on a rail of jackets and still feel credible to people who spend their winters at minus thirty.'
 story: 'I started with the name and turned it into an attitude: "Going Under", the idea of digging in when the weather turns. The logotype pairs heavy lettering with a small mountain peak, set in Neue Haas Grotesk and backed by a strong red with cold blues and icy whites. The system runs from embossed patches on beanies and jackets to bold typographic posters and a website built around the line "Designed in silence. Made for storms." The result is an identity that feels engineered rather than decorated.'
