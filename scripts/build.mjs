@@ -268,24 +268,30 @@ function caseSections(project) {
   return sections;
 }
 
-function renderCaseSection(section) {
-  const lines = [`        <p class="cms-info__label">${escapeHtml(section.label)}</p>`];
+// Sadrzaj jedne sekcije: brojevi, paragrafi, citat — bez oznake.
+function renderCaseContent(section, indent) {
+  const lines = [];
 
   if (section.metrics && section.metrics.length) {
     const items = section.metrics
       .map(
         (metric) =>
-          `          <div class="cms-case__metric">\n` +
-          `            <p class="cms-case__value">${escapeHtml(metric.value)}</p>\n` +
-          (metric.label ? `            <p class="cms-case__metric-label">${escapeHtml(metric.label)}</p>\n` : "") +
-          `          </div>`
+          `${indent}  <div class="cms-case__metric">
+` +
+          `${indent}    <p class="cms-case__value">${escapeHtml(metric.value)}</p>
+` +
+          (metric.label ? `${indent}    <p class="cms-case__metric-label">${escapeHtml(metric.label)}</p>
+` : "") +
+          `${indent}  </div>`
       )
       .join("\n");
-    lines.push(`        <div class="cms-case__metrics" data-count="${section.metrics.length}">\n${items}\n        </div>`);
+    lines.push(`${indent}<div class="cms-case__metrics" data-count="${section.metrics.length}">
+${items}
+${indent}</div>`);
   }
 
   section.paragraphs.forEach((paragraph) => {
-    lines.push(`        <p class="cms-info__text">${escapeHtml(paragraph)}</p>`);
+    lines.push(`${indent}<p class="cms-info__text">${escapeHtml(paragraph)}</p>`);
   });
 
   if (section.testimonial) {
@@ -295,21 +301,72 @@ function renderCaseSection(section) {
       role ? `<span class="cms-case__role">${escapeHtml(role)}</span>` : "",
     ].join("");
     lines.push(
-      `        <figure class="cms-case__quote">\n` +
-        `          <blockquote><p>“${escapeHtml(quote)}”</p></blockquote>\n` +
-        (by ? `          <figcaption>${by}</figcaption>\n` : "") +
-        `        </figure>`
+      `${indent}<figure class="cms-case__quote">
+` +
+        `${indent}  <blockquote><p>“${escapeHtml(quote)}”</p></blockquote>
+` +
+        (by ? `${indent}  <figcaption>${by}</figcaption>
+` : "") +
+        `${indent}</figure>`
     );
   }
 
+  return lines.join("\n");
+}
+
+function renderCaseSection(section) {
   return (
-    `      <div class="cms-info__block cms-info__case" data-cms-reveal="tilt">\n` +
-    `${lines.join("\n")}\n      </div>`
+    `      <div class="cms-info__block cms-info__case" data-cms-reveal="tilt">
+` +
+    `        <p class="cms-info__label">${escapeHtml(section.label)}</p>
+` +
+    `${renderCaseContent(section, "        ")}
+      </div>`
   );
 }
 
+// Challenge / Approach / Results kao tabovi: oznake u redu, ispod tekst
+// izabrane. Smenjuju se same, u krug (assets/cms.js). Svi paneli stoje u istoj
+// celiji mreze, pa je blok uvek visok kao najduzi — nema skakanja dok se
+// smenjuju. Prvi je izabran vec u HTML-u.
+function renderCaseTabs(sections) {
+  const tabs = sections
+    .map(
+      (section, index) =>
+        `          <button type="button" class="cms-info__label cms-case__tab" role="tab" id="case-tab-${index}" aria-controls="case-panel-${index}" aria-selected="${index === 0}"${index === 0 ? "" : ' tabindex="-1"'}>${escapeHtml(section.label)}</button>`
+    )
+    .join("\n");
+  const panels = sections
+    .map(
+      (section, index) =>
+        `          <div class="cms-case__panel${index === 0 ? " is-active" : ""}" role="tabpanel" id="case-panel-${index}" aria-labelledby="case-tab-${index}"${index === 0 ? "" : ' aria-hidden="true" inert'}>
+` +
+        `${renderCaseContent(section, "            ")}
+          </div>`
+    )
+    .join("\n");
+  return (
+    `      <div class="cms-info__block cms-case__tabs" data-cms-tabs data-cms-reveal="tilt">
+` +
+    `        <div class="cms-case__tablist" role="tablist">
+${tabs}
+        </div>
+` +
+    `        <div class="cms-case__panels">
+${panels}
+        </div>
+      </div>`
+  );
+}
+
+// Tekstualne sekcije idu u tabove (ako ih je bar dve); citat ostaje svoj blok
+// ispod. Istu podelu pravi assets/project-story.js za Framer stranice.
 function renderCaseBlocks(project) {
-  return caseSections(project).map(renderCaseSection).join("\n");
+  const sections = caseSections(project);
+  const text = sections.filter((section) => !section.testimonial);
+  const rest = sections.filter((section) => section.testimonial);
+  const blocks = text.length > 1 ? [renderCaseTabs(text)] : text.map(renderCaseSection);
+  return blocks.concat(rest.map(renderCaseSection)).join("\n");
 }
 
 function renderLiveLinkBlock(liveLink) {

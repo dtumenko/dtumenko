@@ -440,13 +440,65 @@ a[href] {
   margin: 0;
 }
 
+/* Citat je iste velicine kao tekst Overview-a. */
 .cms-case__quote blockquote p {
   margin: 0;
   font-family: "Inter Display", "Inter Display Placeholder", sans-serif;
-  font-size: 22px;
-  line-height: 1.4;
-  letter-spacing: -0.01em;
+  font-size: 16px;
+  line-height: 1.5;
   color: rgb(238, 238, 238);
+}
+
+/* Tabovi: oznake izgledaju kao "Overview" (cms-info__label), izabrana je puna
+   bela, ostale prigusene. Bez linija i brojeva. Paneli stoje u istoj celiji
+   mreze, pa je blok visok kao najduzi i ne skace dok se smenjuju. */
+.cms-case__tablist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+}
+
+.cms-case__tab {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  opacity: 0.4;
+  transition: opacity 0.3s ease;
+}
+
+.cms-case__tab:hover {
+  opacity: 0.75;
+}
+
+.cms-case__tab[aria-selected="true"] {
+  opacity: 1;
+}
+
+.cms-case__tab:focus-visible {
+  outline: 1px solid rgb(238, 238, 238);
+  outline-offset: 4px;
+}
+
+.cms-case__panels {
+  display: grid;
+}
+
+.cms-case__panel {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.5s ease, visibility 0s linear 0.5s;
+}
+
+.cms-case__panel.is-active {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.5s ease 0.1s, visibility 0s;
 }
 
 .cms-case__quote figcaption {
@@ -481,9 +533,6 @@ a[href] {
   }
   .cms-case__metric-label {
     text-align: right;
-  }
-  .cms-case__quote blockquote p {
-    font-size: 20px;
   }
 }
 
@@ -549,6 +598,8 @@ a[href] {
     animation: none;
   }
 
+  .cms-case__panel,
+  .cms-case__panel.is-active,
   .cms-card__image img,
   .cms-card__roll,
   .cms-hero__back::after,

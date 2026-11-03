@@ -43,15 +43,25 @@
     "[data-cms-story] .cms-case__metric p,[data-cms-story] .cms-case__by p{white-space:normal!important}" +
     "[data-cms-story] .cms-case__muted{opacity:.6}" +
     "[data-cms-story] .cms-case__quote{display:flex;flex-direction:column;gap:16px;width:100%}" +
-    "[data-cms-story] .cms-case__quote-text p{font-size:22px!important;line-height:1.4!important;letter-spacing:-0.01em!important}" +
     "[data-cms-story] .cms-case__by{display:flex;flex-wrap:wrap;gap:4px 8px}" +
     "[data-cms-story] .cms-case__by>*{width:auto!important;flex:0 0 auto!important}" +
+    // Tabovi — iste mere kao u cms.css.
+    "[data-cms-story] .cms-case__tablist{display:flex;flex-wrap:wrap;gap:8px 24px;width:100%}" +
+    "[data-cms-story] .cms-case__tab{padding:0;border:0;background:none;color:inherit;font:inherit;cursor:pointer;opacity:.4;transition:opacity .3s ease}" +
+    "[data-cms-story] .cms-case__tab>*{width:auto!important}" +
+    "[data-cms-story] .cms-case__tab:hover{opacity:.75}" +
+    '[data-cms-story] .cms-case__tab[aria-selected="true"]{opacity:1}' +
+    "[data-cms-story] .cms-case__tab:focus-visible{outline:1px solid rgb(238,238,238);outline-offset:4px}" +
+    "[data-cms-story] .cms-case__panels{display:grid;width:100%}" +
+    "[data-cms-story] .cms-case__panel{grid-area:1/1;display:flex;flex-direction:column;gap:16px;min-width:0;opacity:0;visibility:hidden;transition:opacity .5s ease,visibility 0s linear .5s}" +
+    "[data-cms-story] .cms-case__panel>*{width:100%}" +
+    "[data-cms-story] .cms-case__panel.is-active{opacity:1;visibility:visible;transition:opacity .5s ease .1s,visibility 0s}" +
+    "@media (prefers-reduced-motion:reduce){[data-cms-story] .cms-case__panel,[data-cms-story] .cms-case__panel.is-active{transition:none}}" +
     "@media (max-width:480px){" +
     "[data-cms-story] .cms-case__metrics,[data-cms-story] .cms-case__metrics[data-count]{grid-template-columns:1fr;gap:0}" +
     "[data-cms-story] .cms-case__metric{flex-direction:row;align-items:baseline;justify-content:space-between;gap:16px;padding:12px 0}" +
     "[data-cms-story] .cms-case__metric>*{width:auto!important;flex:0 1 auto!important}" +
     "[data-cms-story] .cms-case__metric>:last-child p{text-align:right!important}" +
-    "[data-cms-story] .cms-case__quote-text p{font-size:20px!important}" +
     "}";
 
   function readConfig() {
@@ -128,7 +138,7 @@
     return node;
   }
 
-  function buildBlock(slot, section) {
+  function buildBlock(slot, block) {
     var node = slot.group.cloneNode(true);
     node.setAttribute(MARK, "");
     clearMotion(node);
@@ -139,15 +149,47 @@
     var textBox = boxes[labelIndex + 1] || boxes[labelIndex === 0 ? 1 : 0];
     if (!labelBox || !textBox) return null;
 
-    var labelText = labelBox.querySelector("p") || labelBox;
-    labelText.textContent = section.label;
-
     // Svaki paragraf je svoj tekstualni okvir, kao kod Framer-a: razmak medju
     // njima je onda `gap` bloka (16px), isti kao izmedju oznake i teksta.
     boxes.forEach(function (box) {
       if (box !== labelBox) box.remove();
     });
 
+    if (block.tabs) {
+      labelBox.remove();
+      var list = div("cms-case__tablist", []);
+      list.setAttribute("role", "tablist");
+      var panels = div("cms-case__panels", []);
+      block.tabs.forEach(function (section, index) {
+        var tab = document.createElement("button");
+        tab.type = "button";
+        tab.className = "cms-case__tab";
+        tab.setAttribute("role", "tab");
+        tab.appendChild(textFrom(labelBox, section.label));
+        list.appendChild(tab);
+
+        var panel = div("cms-case__panel" + (index === 0 ? " is-active" : ""), []);
+        panel.setAttribute("role", "tabpanel");
+        fill(panel, section, labelBox, textBox);
+        panels.appendChild(panel);
+      });
+      node.appendChild(list);
+      node.appendChild(panels);
+      startTabs(node);
+    } else {
+      var labelText = labelBox.querySelector("p") || labelBox;
+      labelText.textContent = block.label;
+      fill(node, block, labelBox, textBox);
+    }
+
+    node.style.setProperty("opacity", "0");
+    node.style.setProperty("transform", "translateY(25px)");
+    node.style.setProperty("transition", "opacity .6s ease, transform .6s ease");
+    return node;
+  }
+
+  // Brojevi, paragrafi i citat jedne sekcije, od Framer okvira oznake i teksta.
+  function fill(node, section, labelBox, textBox) {
     var metrics = Array.isArray(section.metrics) ? section.metrics : [];
     if (metrics.length) {
       var grid = div(
@@ -179,11 +221,117 @@
         ])
       );
     }
+  }
 
-    node.style.setProperty("opacity", "0");
-    node.style.setProperty("transform", "translateY(25px)");
-    node.style.setProperty("transition", "opacity .6s ease, transform .6s ease");
-    return node;
+  // Tabovi se smenjuju sami, u krug — ista logika kao u assets/cms.js
+  // (menjati na oba mesta). Svaki stoji 10 sekundi; dok je mis
+  // iznad, fokus sa tastature u bloku ili blok van slike — stoji. Kad React
+  // skloni blok, tajmer se gasi.
+  function startTabs(root) {
+    var tabs = Array.prototype.slice.call(root.querySelectorAll('[role="tab"]'));
+    var panels = Array.prototype.slice.call(root.querySelectorAll('[role="tabpanel"]'));
+    var current = 0;
+    var timer = null;
+    var hovered = false;
+    var focused = false;
+    var inView = true;
+    var uid = "cms-case-" + Math.random().toString(36).slice(2, 8);
+
+    tabs.forEach(function (tab, i) {
+      tab.id = uid + "-tab-" + i;
+      panels[i].id = uid + "-panel-" + i;
+      tab.setAttribute("aria-controls", panels[i].id);
+      panels[i].setAttribute("aria-labelledby", tab.id);
+    });
+
+    var DWELL = 10000;
+
+    function select(index) {
+      current = (index + tabs.length) % tabs.length;
+      tabs.forEach(function (tab, i) {
+        var on = i === current;
+        tab.setAttribute("aria-selected", on ? "true" : "false");
+        if (on) tab.removeAttribute("tabindex");
+        else tab.setAttribute("tabindex", "-1");
+      });
+      panels.forEach(function (panel, i) {
+        var on = i === current;
+        panel.classList.toggle("is-active", on);
+        if (on) {
+          panel.removeAttribute("aria-hidden");
+          panel.removeAttribute("inert");
+        } else {
+          panel.setAttribute("aria-hidden", "true");
+          panel.setAttribute("inert", "");
+        }
+      });
+    }
+
+    function schedule() {
+      clearTimeout(timer);
+      timer = null;
+      if (hovered || focused || !inView || document.hidden) return;
+      timer = setTimeout(function () {
+        if (!root.isConnected) return;
+        select(current + 1);
+        schedule();
+      }, DWELL);
+    }
+
+    tabs.forEach(function (tab, index) {
+      tab.addEventListener("click", function () {
+        select(index);
+        schedule();
+      });
+      tab.addEventListener("keydown", function (event) {
+        var step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+        if (!step) return;
+        event.preventDefault();
+        select(current + step);
+        tabs[current].focus();
+      });
+    });
+
+    root.addEventListener("mouseenter", function () {
+      hovered = true;
+      schedule();
+    });
+    root.addEventListener("mouseleave", function () {
+      hovered = false;
+      schedule();
+    });
+    root.addEventListener("focusin", function (event) {
+      focused = event.target.matches(":focus-visible");
+      schedule();
+    });
+    root.addEventListener("focusout", function () {
+      focused = false;
+      schedule();
+    });
+    document.addEventListener("visibilitychange", function () {
+      if (root.isConnected) schedule();
+    });
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(function (entries) {
+        inView = entries[entries.length - 1].isIntersecting;
+        schedule();
+      }).observe(root);
+    }
+
+    select(0);
+    schedule();
+  }
+
+  // Challenge / Approach / Results idu u jedan blok sa tabovima (ako ih je bar
+  // dve), citat ostaje svoj blok ispod — kao renderCaseBlocks u build.mjs.
+  function groupBlocks(sections) {
+    var text = sections.filter(function (section) {
+      return !section.testimonial;
+    });
+    var rest = sections.filter(function (section) {
+      return section.testimonial;
+    });
+    return (text.length > 1 ? [{ tabs: text }] : text).concat(rest);
   }
 
   function reveal(node) {
@@ -206,17 +354,18 @@
       : null;
 
   function apply(sections) {
+    var blocks = groupBlocks(sections);
     var slots = findSlots();
     slots.forEach(function (slot) {
       var existing = slot.column.querySelectorAll(":scope > [" + MARK + "]");
-      if (existing.length === sections.length && existing[0].previousElementSibling === slot.anchor) return;
+      if (existing.length === blocks.length && existing[0].previousElementSibling === slot.anchor) return;
       Array.prototype.forEach.call(existing, function (node) {
         node.remove();
       });
 
       var after = slot.anchor;
-      sections.forEach(function (section, index) {
-        var node = buildBlock(slot, section);
+      blocks.forEach(function (block, index) {
+        var node = buildBlock(slot, block);
         if (!node) return;
         after.insertAdjacentElement("afterend", node);
         after = node;

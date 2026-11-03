@@ -139,6 +139,97 @@
     }
   }
 
+  // Tabovi Challenge / Approach / Results smenjuju se sami, u krug, na 10
+  // sekundi. Dok je mis iznad bloka, fokus u njemu ili blok van slike — stoji.
+  // Klik bira tab i krece brojanje ispocetka. Ista logika je u assets/project-story.js za
+  // Framer stranice — menjati na oba mesta.
+  var tabBlock = document.querySelector("[data-cms-tabs]");
+  if (tabBlock) {
+    var tabs = Array.prototype.slice.call(tabBlock.querySelectorAll('[role="tab"]'));
+    var panels = Array.prototype.slice.call(tabBlock.querySelectorAll('[role="tabpanel"]'));
+    var current = 0;
+    var timer = null;
+    var hovered = false;
+    var focused = false;
+    var inView = true;
+
+    var DWELL = 10000;
+
+    var select = function (index) {
+      current = (index + tabs.length) % tabs.length;
+      tabs.forEach(function (tab, i) {
+        var on = i === current;
+        tab.setAttribute("aria-selected", on ? "true" : "false");
+        if (on) tab.removeAttribute("tabindex");
+        else tab.setAttribute("tabindex", "-1");
+      });
+      panels.forEach(function (panel, i) {
+        var on = i === current;
+        panel.classList.toggle("is-active", on);
+        if (on) {
+          panel.removeAttribute("aria-hidden");
+          panel.removeAttribute("inert");
+        } else {
+          panel.setAttribute("aria-hidden", "true");
+          panel.setAttribute("inert", "");
+        }
+      });
+    };
+
+    var schedule = function () {
+      clearTimeout(timer);
+      timer = null;
+      if (hovered || focused || !inView || document.hidden) return;
+      timer = setTimeout(function () {
+        select(current + 1);
+        schedule();
+      }, DWELL);
+    };
+
+    tabs.forEach(function (tab, index) {
+      tab.addEventListener("click", function () {
+        select(index);
+        schedule();
+      });
+      tab.addEventListener("keydown", function (event) {
+        var step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+        if (!step) return;
+        event.preventDefault();
+        select(current + step);
+        tabs[current].focus();
+      });
+    });
+
+    tabBlock.addEventListener("mouseenter", function () {
+      hovered = true;
+      schedule();
+    });
+    tabBlock.addEventListener("mouseleave", function () {
+      hovered = false;
+      schedule();
+    });
+    // Samo fokus sa tastature: posle klika misem fokus ostaje na dugmetu, pa bi
+    // smenjivanje stalo dok se ne klikne negde drugde.
+    tabBlock.addEventListener("focusin", function (event) {
+      focused = event.target.matches(":focus-visible");
+      schedule();
+    });
+    tabBlock.addEventListener("focusout", function () {
+      focused = false;
+      schedule();
+    });
+    document.addEventListener("visibilitychange", schedule);
+
+    if (typeof IntersectionObserver === "function") {
+      new IntersectionObserver(function (entries) {
+        inView = entries[entries.length - 1].isIntersecting;
+        schedule();
+      }).observe(tabBlock);
+    }
+
+    schedule();
+  }
+
   // Desna kolona prati skrol (sticky, top: 48px). Kad sa tekstom "Approach"
   // postane visa od ekrana, sa top: 48px bi joj dno ostalo van slike sve do
   // kraja galerije. Zato se tada lepi tek kad joj dno udje u sliku: top postaje
