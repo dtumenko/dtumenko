@@ -227,36 +227,36 @@
         "key": "project_overview",
         "field": "qHx5bRsBk",
         "label": "Project Overview",
-        "rows": 6,
-        "value": "The project explores how a contemporary design festival can exist as a complete design ecosystem—spanning posters, environmental graphics, wayfinding, tickets, banners, motion design, and digital experience. Inspired by international biennales and large-scale cultural events, the goal was to create a bold, flexible, and recognizable identity that moves seamlessly across physical and digital spaces."
+        "value": "The project explores how a contemporary design festival can exist as a complete design ecosystem—spanning posters, environmental graphics, wayfinding, tickets, banners, motion design, and digital experience. Inspired by international biennales and large-scale cultural events, the goal was to create a bold, flexible, and recognizable identity that moves seamlessly across physical and digital spaces.",
+        "rows": 6
       },
       {
         "key": "service1",
         "field": "ES3pqjhrn",
         "label": "Service 1",
-        "rows": 1,
-        "value": "Brand Identity"
+        "value": "Brand Identity",
+        "rows": 1
       },
       {
         "key": "service2",
         "field": "rc8P13D3Q",
         "label": "Service 2",
-        "rows": 1,
-        "value": "Print Design"
+        "value": "Print Design",
+        "rows": 1
       },
       {
         "key": "service3",
         "field": "vdUCargUV",
         "label": "Service 3",
-        "rows": 1,
-        "value": "Digital Marketing"
+        "value": "Digital Marketing",
+        "rows": 1
       },
       {
         "key": "live_link",
         "field": "E3vtRy1Vd",
         "label": "Live Link",
-        "rows": 1,
-        "value": "framer.com"
+        "value": "framer.com",
+        "rows": 1
       }
     ]
   },
