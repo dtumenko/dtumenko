@@ -1,7 +1,7 @@
 ---
 title: Bogdan Ristic Attorney
 slug: bogdan-ristic-attorney
-status: Draft
+status: Live
 year: 2026
 services:
   - Branding
