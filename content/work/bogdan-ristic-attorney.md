@@ -32,6 +32,9 @@ gallery:
   - type: image
     src: /assets/uploads/mw5akmdz-p2.jpg
     alt: ''
+  - type: image
+    src: /assets/uploads/mw5au66r-p3.jpg
+    alt: ''
 ---
 
 Bogdan Ristić Law Office is an independent legal practice in [City], Serbia, built around the name and reputation of its founder. The project covered a complete brand identity: a BR monogram drawn as a classical column, a circular seal inspired by official stamps, a restrained palette of deep teal, charcoal and warm sand, and a serif-led typography system. The identity was then carried across a full stationery suite, from business cards and letterhead to envelopes, folders and notebooks, with blind embossing and tone-on-tone details that reveal themselves up close. The goal was an identity that feels established from day one: serious without being cold, classic without looking dated.
