@@ -793,6 +793,54 @@ a {
   color: var(--accent);
 }
 
+/* Video u galeriji: mala oznaka preko pregleda, da se na prvi pogled razlikuje od slike. */
+.thumb--video::after {
+  content: "VIDEO";
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+
+.slot-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Strelice za redosled galerije, ispod slota. */
+.slot-move {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.slot-move button {
+  width: 28px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  background: var(--field);
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.slot-move button:hover:not(:disabled) {
+  background: var(--field-hover);
+  color: var(--text);
+}
+
+.slot-move button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
 .slot-remove {
   align-self: center;
   padding: 6px 10px;

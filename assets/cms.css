@@ -322,6 +322,14 @@ a[href] {
   display: block;
 }
 
+/* Video bez metapodataka (pre nego sto se ucita) browser crta kao 300x150, pa
+   bi ignorisao odnos koji je okvir vec rezervisao. Zato popunjava okvir; kad
+   odnos nije poznat, okvir je `auto` i ovo nista ne menja. */
+.cms-project__figure--video video {
+  height: 100%;
+  object-fit: cover;
+}
+
 /* Podaci prate skrol dok se slike smenjuju pored njih — isto kao na Frameru
    (position: sticky, top: 48px). */
 .cms-project__info {

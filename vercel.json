@@ -22,7 +22,7 @@
       ]
     },
     {
-      "source": "/assets/(fonts|videos)/(.*)",
+      "source": "/assets/(fonts|videos|uploads)/(.*)",
       "headers": [
         {
           "key": "Cache-Control",

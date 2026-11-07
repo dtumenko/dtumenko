@@ -115,6 +115,23 @@ function imageSize(src) {
     }
   }
 
+  // MP4 / MOV — dimenzije stoje u `tkhd` atomu video traga, kao 16.16 brojevi
+  // na kraju atoma. Audio trag ima isti atom sa nulama, pa se uzima prvi koji
+  // nije prazan. Kad je video snimljen uspravno (rotacija 90°), u matrici je
+  // a = 0, pa se sirina i visina menjaju.
+  if (buf.length > 12 && buf.toString("ascii", 4, 8) === "ftyp") {
+    let at = buf.indexOf("tkhd");
+    while (at > 4 && at < buf.length - 90) {
+      const version = buf[at + 4];
+      const fields = at + 8 + (version === 1 ? 32 : 20) + 16;
+      const matrixA = buf.readInt32BE(fields);
+      const width = buf.readUInt32BE(fields + 36) >>> 16;
+      const height = buf.readUInt32BE(fields + 40) >>> 16;
+      if (width && height) return matrixA === 0 ? { width: height, height: width } : { width, height };
+      at = buf.indexOf("tkhd", at + 4);
+    }
+  }
+
   return null;
 }
 
@@ -178,12 +195,27 @@ function loadLegacyProjects() {
 // Slike bez opisa iz panela dobijaju "Naslov projekta — image N" (sajt je na
 // engleskom). Prazan alt je za Google i citace ekrana isto sto i slika bez
 // ikakvog opisa.
+//
+// Video je motion grafika, ne film: pusta se sam, bez zvuka i u krug, i to
+// samo dok je na ekranu — to radi assets/cms.js. `preload="none"` znaci da se
+// na telefonu nista ne skida dok video ne dodje do ekrana; do tad se vidi
+// poster (prvi kadar koji panel napravi pri uploadu). Odnos stranica dolazi iz
+// dimenzija koje je zapisao panel, pa iz postera, pa iz samog MP4 fajla.
+function videoRatio(item) {
+  if (Number(item.width) > 0 && Number(item.height) > 0) {
+    return ` style="aspect-ratio:${Number(item.width)} / ${Number(item.height)}"`;
+  }
+  return ratioStyle(item.poster) || ratioStyle(item.src);
+}
+
 function renderGalleryItems(gallery, title) {
   if (!Array.isArray(gallery) || gallery.length === 0) return "";
   return gallery
     .map((item, index) => {
-      if (item.type === "video") {
-        return `      <div class="cms-project__figure" data-cms-reveal${ratioStyle(item.src)}><video src="${escapeHtml(item.src)}" muted loop playsinline controls preload="metadata"></video></div>`;
+      if (item.type === "video" || /\.(mp4|webm|mov|m4v)$/i.test(item.src || "")) {
+        const poster = item.poster ? ` poster="${escapeHtml(item.poster)}"` : "";
+        const label = escapeHtml(item.alt || `${title} — video ${index + 1}`);
+        return `      <div class="cms-project__figure cms-project__figure--video" data-cms-reveal${videoRatio(item)}><video src="${escapeHtml(item.src)}"${poster} muted loop playsinline preload="none" disablepictureinpicture aria-label="${label}" data-cms-video></video></div>`;
       }
       return `      <div class="cms-project__figure" data-cms-reveal${ratioStyle(item.src)}><img src="${escapeHtml(item.src)}" alt="${escapeHtml(item.alt || `${title} — image ${index + 1}`)}" loading="lazy"></div>`;
     })

@@ -96,15 +96,35 @@
     // Sablon je prvi slajd galerije; ako je bas on sakriven, klon to ne nasledjuje.
     node.removeAttribute(HIDE);
 
+    node.querySelectorAll("video, source").forEach(function (el) {
+      el.remove();
+    });
     node.querySelectorAll("img").forEach(function (img) {
+      // Video slajd: slika iz sablona se menja videom koji nasledjuje njen
+      // polozaj i isecanje (klasa i inline stil), pa stoji u okviru isto kao slika.
+      if (isVideo(image.src)) {
+        var video = document.createElement("video");
+        if (img.className) video.className = img.className;
+        if (img.getAttribute("style")) video.setAttribute("style", img.getAttribute("style"));
+        video.src = image.src;
+        if (image.poster) video.poster = image.poster;
+        video.muted = true;
+        video.loop = true;
+        video.playsInline = true;
+        video.preload = "none";
+        video.setAttribute("muted", "");
+        video.setAttribute("playsinline", "");
+        video.setAttribute("disablepictureinpicture", "");
+        video.setAttribute("aria-label", image.alt || "Video");
+        video.style.setProperty("object-fit", "cover");
+        img.parentNode.replaceChild(video, img);
+        return;
+      }
       img.setAttribute("src", image.src);
       img.removeAttribute("srcset");
       img.removeAttribute("sizes");
       img.setAttribute("alt", image.alt || "");
       img.setAttribute("loading", "lazy");
-    });
-    node.querySelectorAll("video, source").forEach(function (el) {
-      el.remove();
     });
 
     // Framer ostavlja slajd sakriven dok ga njegova scroll animacija ne pusti;
@@ -315,6 +335,85 @@
         reveal(node);
         if (observer) observer.unobserve(node);
       }, 1500);
+      Array.prototype.forEach.call(node.querySelectorAll("video"), watchVideo);
+    });
+  }
+
+  function isVideo(src) {
+    return /\.(mp4|webm|mov|m4v)$/i.test(String(src || ""));
+  }
+
+  // Dodati videi se pustaju sami, bez zvuka i u krug, samo dok su na ekranu —
+  // ista logika kao u assets/cms.js za nove project stranice (menjati na oba
+  // mesta). Ko je iskljucio animacije ili stedi podatke dobija kontrole.
+  var calm =
+    (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) ||
+    (navigator.connection && navigator.connection.saveData);
+  var visibleVideos = [];
+  var warmObserver = null;
+  var playObserver = null;
+
+  function showControls(video) {
+    video.controls = true;
+    video.preload = "metadata";
+  }
+
+  function playVideo(video) {
+    if (video.dataset.cmsPaused || document.hidden) return;
+    var attempt = video.play();
+    if (attempt && attempt.catch) attempt.catch(function () { showControls(video); });
+  }
+
+  function watchVideo(video) {
+    if (calm || typeof IntersectionObserver !== "function") {
+      showControls(video);
+      return;
+    }
+    if (!warmObserver) {
+      warmObserver = new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (entry) {
+            if (!entry.isIntersecting) return;
+            entry.target.preload = "auto";
+            warmObserver.unobserve(entry.target);
+          });
+        },
+        { rootMargin: "400px 0px" }
+      );
+      playObserver = new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (entry) {
+            var target = entry.target;
+            var at = visibleVideos.indexOf(target);
+            if (entry.isIntersecting && target.isConnected) {
+              if (at < 0) visibleVideos.push(target);
+              playVideo(target);
+            } else {
+              if (at >= 0) visibleVideos.splice(at, 1);
+              target.pause();
+            }
+          });
+        },
+        { threshold: 0.25 }
+      );
+      document.addEventListener("visibilitychange", function () {
+        visibleVideos.forEach(function (target) {
+          if (document.hidden) target.pause();
+          else playVideo(target);
+        });
+      });
+    }
+    warmObserver.observe(video);
+    playObserver.observe(video);
+    video.addEventListener("click", function () {
+      if (video.controls) return;
+      if (video.paused) {
+        delete video.dataset.cmsPaused;
+        playVideo(video);
+      } else {
+        video.dataset.cmsPaused = "1";
+        video.pause();
+      }
     });
   }
 

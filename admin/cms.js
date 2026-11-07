@@ -30,6 +30,11 @@
   // Novi CMS projekti nemaju to ogranicenje: njihova galerija je niz.
   var LEGACY_IMAGE_SLOTS = 6;
   var NEW_PROJECT_SLOTS = 3;
+  // Video ide kroz GitHub API kao base64, a GitHub ne prima fajl preko 100 MB.
+  // Iznad VIDEO_WARN_MB panel samo upozori da ce se na telefonu sporo ucitavati.
+  var VIDEO_MAX_MB = 50;
+  var VIDEO_WARN_MB = 15;
+  var POSTER_MAX_WIDTH = 1600;
 
   /* ------------------------------------------------------------ helpers */
 
@@ -378,13 +383,15 @@
     var gallery = Array.isArray(data.gallery) ? data.gallery : [];
 
     // Galerija CMS projekta je obican niz — koliko slika ima, toliko slotova.
-    // Nema gornje granice; jedan projekat moze da ima tri, drugi deset.
+    // Nema gornje granice; jedan projekat moze da ima tri, drugi deset. Video
+    // je slot kao i slika i stoji tamo gde je u nizu, pa se slike i videi
+    // redjaju zajedno. Ranije je CMS projekat imao jedno zasebno polje za video
+    // koje je uvek islo na kraj galerije — taj zapis se cita isto.
     var images = [];
-    var video = { src: "", match: "" };
     gallery.forEach(function (row) {
       if (!row || !row.src) return;
       if (row.type === "video" || isVideoPath(row.src)) {
-        if (!video.src) video = { src: row.src, match: row.src };
+        images.push(videoSlot(row));
         return;
       }
       images.push({ src: row.src, alt: row.alt || "", match: row.src });
@@ -411,8 +418,33 @@
       thumb: { src: data.hero_image || "", alt: "", match: data.hero_image || "" },
       heroFocus: data.hero_focus || "center",
       images: images,
-      video: video,
+      video: { src: "", match: "" },
     };
+  }
+
+  // Video slot nosi i poster (prvi kadar kao JPG, pravi ga panel pri uploadu)
+  // i dimenzije. Poster se vidi dok se video ne ucita, a po dimenzijama sajt
+  // rezervise mesto, pa se stranica ne pomera kad video stigne.
+  function videoSlot(row) {
+    var slot = { kind: "video", src: row.src || "", alt: row.alt || "", match: row.src || "" };
+    if (row.poster) slot.poster = row.poster;
+    if (row.width && row.height) {
+      slot.width = Number(row.width);
+      slot.height = Number(row.height);
+    }
+    return slot;
+  }
+
+  // Red galerije kako ide u Markdown / u blok za Framer stranice.
+  function galleryRow(slot) {
+    if (!isVideoPath(slot.src)) return { type: "image", src: slot.src, alt: slot.alt || "" };
+    var row = { type: "video", src: slot.src, alt: slot.alt || "" };
+    if (slot.poster) row.poster = slot.poster;
+    if (slot.width && slot.height) {
+      row.width = slot.width;
+      row.height = slot.height;
+    }
+    return row;
   }
 
   // Case study polja (Challenge / Results / Testimonial) — ista za CMS i
@@ -476,13 +508,7 @@
       .filter(function (image) {
         return image.src;
       })
-      .map(function (image) {
-        return { type: "image", src: image.src, alt: image.alt || "" };
-      });
-
-    if (item.video && item.video.src) {
-      gallery.push({ type: "video", src: item.video.src, alt: "" });
-    }
+      .map(galleryRow);
 
     var data = {
       title: item.title,
@@ -564,8 +590,9 @@
       images: images,
       // Slike preko Framer-ovih sest — ubacuje ih assets/legacy-gallery.js
       // posle hidracije, iz JSON bloka u samoj stranici.
+      // Isti niz prima i videe — assets/legacy-gallery.js od njih pravi video slajd.
       extraImages: ((manifest && manifest.extra) || []).map(function (image) {
-        return { src: image.src, alt: image.alt || "" };
+        return isVideoPath(image.src) ? videoSlot(image) : { src: image.src, alt: image.alt || "" };
       }),
       video: (manifest && manifest.video) || { src: "", match: "" },
       sources:
@@ -2045,10 +2072,11 @@
     draft.images.forEach(function (image, index) {
       fields.push(
         fieldRow(
-          "Image " + (index + 1),
+          slotLabel(image, index + 1),
           mediaSlot(
             image,
-            "image",
+            // Framer-ovih sest slotova su slike u samoj stranici i ostaju slike.
+            isLegacy ? "image" : slotKind(image),
             // Kod CMS projekata × sklanja ceo slot, jer je galerija niz. Framer-ovih
             // slotova ima tacno sest i ne mogu da nestanu iz izvora, pa × slajd
             // sakriva: slika ostaje u stranici, a sa ekrana je skida
@@ -2073,50 +2101,63 @@
                   rerenderEditor();
                 }
               : null
-          )
+          ),
+          null,
+          isLegacy ? null : moveButtons(draft.images, index)
         )
       );
     });
 
-    // Slike preko Framer-ovih sest. Nastavljaju numeraciju (Image 7, 8, …) i
-    // ponasaju se isto, samo ih na stranicu dodaje assets/legacy-gallery.js.
+    // Slike i videi preko Framer-ovih sest. Nastavljaju numeraciju (Image 7,
+    // Video 8, …), a na stranicu ih dodaje assets/legacy-gallery.js.
     if (isLegacy) {
       draft.extraImages.forEach(function (image, index) {
         fields.push(
           fieldRow(
-            "Image " + (LEGACY_IMAGE_SLOTS + index + 1),
-            mediaSlot(image, "image", function () {
+            slotLabel(image, LEGACY_IMAGE_SLOTS + index + 1),
+            mediaSlot(image, slotKind(image), function () {
               draft.extraImages.splice(index, 1);
               markDirty();
               rerenderEditor();
-            })
+            }),
+            null,
+            moveButtons(draft.extraImages, index)
           )
         );
       });
     }
 
+    function addSlot(kind) {
+      (isLegacy ? draft.extraImages : draft.images).push({ kind: kind, src: "", alt: "", match: "" });
+      markDirty();
+      rerenderEditor();
+    }
+
     fields.push(
       fieldRow(
         "",
-        el(
-          "button",
-          {
-            class: "btn",
-            onclick: function () {
-              (isLegacy ? draft.extraImages : draft.images).push({ src: "", alt: "", match: "" });
-              markDirty();
-              rerenderEditor();
-            },
-          },
-          [el("span", { html: ICONS.plus }), el("span", { text: "Dodaj sliku" })]
-        ),
-        isLegacy
-          ? "Galerija moze da ima koliko god slika treba. Prvih sest su fiksna polja stranice; sve preko toga dodaje sajt sam pri ucitavanju stranice."
-          : "Galerija moze da ima koliko god slika treba — tri, deset, svejedno."
+        el("div", { class: "slot-add" }, [
+          el("button", { class: "btn", onclick: function () { addSlot("image"); } }, [
+            el("span", { html: ICONS.plus }),
+            el("span", { text: "Dodaj sliku" }),
+          ]),
+          el("button", { class: "btn", onclick: function () { addSlot("video"); } }, [
+            el("span", { html: ICONS.plus }),
+            el("span", { text: "Dodaj video" }),
+          ]),
+        ]),
+        (isLegacy
+          ? "Galerija moze da ima koliko god slika i videa treba. Prvih sest su fiksna polja stranice; sve preko toga dodaje sajt sam pri ucitavanju stranice. "
+          : "Galerija moze da ima koliko god slika i videa treba, u bilo kom redosledu. Strelice pomeraju stavku gore-dole. ") +
+          "Video: MP4 (H.264), do " + VIDEO_MAX_MB + " MB, a najbolje ispod " + VIDEO_WARN_MB +
+          " MB. Na sajtu se pusta sam, bez zvuka i u krug, cim dodje na ekran."
       )
     );
 
-    fields.push(fieldRow("video", mediaSlot(draft.video, "video")));
+    // Video koji je deo same Framer stranice (Adria, Vellor) — moze samo da se zameni.
+    if (isLegacy && draft.video && draft.video.src) {
+      fields.push(fieldRow("Framer video", mediaSlot(draft.video, "video", false)));
+    }
 
     if (isLegacy) {
       fields.push(
@@ -2208,14 +2249,14 @@
         el(
           "button",
           {
-            class: kind === "video" ? "filepick" : "dropzone",
+            class: "dropzone",
             onclick: function () {
               pickFile(accept, function (file) {
                 stageFile(file, slot);
               });
             },
           },
-          [kind === "video" ? "Choose File..." : "Upload"]
+          [kind === "video" ? "Upload video" : "Upload"]
         ),
         slot.hidden && onRestore
           ? el("button", { class: "slot-remove", title: "Vrati originalnu sliku", onclick: onRestore }, [
@@ -2230,10 +2271,19 @@
     }
 
     var preview = displaySrc(slot.src);
+    var isVideo = isVideoPath(slot.src) || kind === "video";
     return el("div", { class: "media" }, [
-      el("div", { class: "thumb" }, [
-        isVideoPath(slot.src) || kind === "video"
-          ? el("video", { src: preview, muted: true, playsinline: true })
+      el("div", { class: "thumb" + (isVideo ? " thumb--video" : "") }, [
+        // Upload-ovan video GitHub servira kao obican fajl, pa ga browser cesto
+        // ne pusta u pregledu — poster (prvi kadar) se zato vidi uvek.
+        isVideo
+          ? el("video", {
+              src: preview,
+              poster: slot.poster ? displaySrc(slot.poster) : undefined,
+              muted: true,
+              playsinline: true,
+              preload: "metadata",
+            })
           : el("img", { src: preview, alt: slot.alt || "" }),
         onRemove === false
           ? null
@@ -2241,7 +2291,9 @@
               "button",
               {
                 class: "thumb__remove",
-                title: onRemove ? "Ukloni sliku iz galerije" : "Ukloni sliku",
+                title: onRemove
+                  ? isVideo ? "Ukloni video iz galerije" : "Ukloni sliku iz galerije"
+                  : "Ukloni sliku",
                 onclick:
                   onRemove ||
                   function () {
@@ -2283,41 +2335,163 @@
   function stageFile(file, slot) {
     var extension = (file.name.split(".").pop() || "bin").toLowerCase();
     var base = slugify(file.name.replace(/\.[^.]+$/, "")) || "file";
-    var path = CFG.publicFolder + "/" + Date.now().toString(36) + "-" + base + "." + extension;
+    var stamp = Date.now().toString(36);
+    var path = CFG.publicFolder + "/" + stamp + "-" + base + "." + extension;
+    var video = isVideoPath(file.name);
 
-    var reader = new FileReader();
-    reader.onerror = function () {
-      toast("Ne mogu da procitam fajl.", true);
-    };
-    reader.onload = function () {
-      var dataUrl = String(reader.result);
-      state.staged[path] = {
-        base64: dataUrl.split(",")[1],
-        previewUrl: dataUrl,
-        repoPath: CFG.mediaFolder + "/" + path.split("/").pop(),
+    if (video) {
+      var mb = file.size / 1048576;
+      // GitHub prima fajl do 100 MB, a kroz API ide kao base64 (trecina veci).
+      if (mb > VIDEO_MAX_MB) {
+        toast(
+          "Video ima " + mb.toFixed(0) + " MB — najvise je " + VIDEO_MAX_MB +
+            " MB. Izvezi ga ponovo kao MP4 (H.264) sa manjim bitrate-om.",
+          true
+        );
+        return;
+      }
+      if (mb > VIDEO_WARN_MB) {
+        toast(
+          "Video ima " + mb.toFixed(0) + " MB. Radi, ali na telefonu ce se sporo " +
+            "ucitavati — ispod " + VIDEO_WARN_MB + " MB je bolje."
+        );
+      }
+    }
+
+    readBase64(file)
+      .then(function (base64) {
+        state.staged[path] = {
+          base64: base64,
+          // Video ide u pregled kao blob URL — data URL od 30 MB bi zagusio panel.
+          previewUrl: video ? URL.createObjectURL(file) : "data:" + file.type + ";base64," + base64,
+          repoPath: CFG.mediaFolder + "/" + path.split("/").pop(),
+        };
+        slot.src = path;
+        slot.hidden = false;
+        if (!video) return;
+
+        slot.kind = "video";
+        delete slot.poster;
+        delete slot.width;
+        delete slot.height;
+        return videoPoster(state.staged[path].previewUrl).then(function (frame) {
+          if (!frame) return;
+          var posterPath = CFG.publicFolder + "/" + stamp + "-" + base + "-poster.jpg";
+          state.staged[posterPath] = {
+            base64: frame.base64,
+            previewUrl: "data:image/jpeg;base64," + frame.base64,
+            repoPath: CFG.mediaFolder + "/" + posterPath.split("/").pop(),
+          };
+          slot.poster = posterPath;
+          slot.width = frame.width;
+          slot.height = frame.height;
+        });
+      })
+      .then(function () {
+        markDirty();
+        rerenderEditor();
+      })
+      .catch(function () {
+        toast("Ne mogu da procitam fajl.", true);
+      });
+  }
+
+  function readBase64(file) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = function () {
+        resolve(String(reader.result).split(",")[1]);
       };
-      slot.src = path;
-      slot.hidden = false;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Prvi kadar videa kao JPG, i dimenzije videa. Poster se na sajtu vidi odmah,
+  // dok video jos nije ucitan (na telefonu se video ne ucitava dok ne dodje na
+  // ekran), a po dimenzijama sajt rezervise mesto. Ako browser ne ume da
+  // dekodira video, ide bez postera — video radi i bez njega.
+  function videoPoster(url) {
+    return new Promise(function (resolve) {
+      var video = document.createElement("video");
+      var done = false;
+      function finish(result) {
+        if (done) return;
+        done = true;
+        video.removeAttribute("src");
+        video.load();
+        resolve(result);
+      }
+      setTimeout(function () {
+        finish(null);
+      }, 8000);
+
+      video.muted = true;
+      video.playsInline = true;
+      video.preload = "auto";
+      video.addEventListener("error", function () {
+        finish(null);
+      });
+      video.addEventListener("loadeddata", function () {
+        // Prvi kadar animacije je cesto prazan ili crn; malo dalje je reprezentativnije.
+        video.currentTime = Math.min(0.5, (video.duration || 1) / 4);
+      });
+      video.addEventListener("seeked", function () {
+        var width = video.videoWidth;
+        var height = video.videoHeight;
+        if (!width || !height) return finish(null);
+        var scale = Math.min(1, POSTER_MAX_WIDTH / width);
+        var canvas = document.createElement("canvas");
+        canvas.width = Math.round(width * scale);
+        canvas.height = Math.round(height * scale);
+        try {
+          canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+          var data = canvas.toDataURL("image/jpeg", 0.82).split(",")[1];
+          finish({ base64: data, width: width, height: height });
+        } catch (err) {
+          finish(null);
+        }
+      });
+      video.src = url;
+    });
+  }
+
+  function slotKind(slot) {
+    return slot.kind === "video" || isVideoPath(slot.src) ? "video" : "image";
+  }
+
+  function slotLabel(slot, number) {
+    return (slotKind(slot) === "video" ? "Video " : "Image ") + number;
+  }
+
+  // Strelice gore/dole pored slota — redosled galerije je redosled na stranici.
+  function moveButtons(list, index) {
+    function move(step) {
+      var target = index + step;
+      if (target < 0 || target >= list.length) return;
+      var item = list.splice(index, 1)[0];
+      list.splice(target, 0, item);
       markDirty();
       rerenderEditor();
-    };
-    reader.readAsDataURL(file);
+    }
+    return el("div", { class: "slot-move" }, [
+      el("button", { title: "Pomeri gore", disabled: index === 0, onclick: function () { move(-1); } }, ["↑"]),
+      el(
+        "button",
+        { title: "Pomeri dole", disabled: index === list.length - 1, onclick: function () { move(1); } },
+        ["↓"]
+      ),
+    ]);
   }
 
   /* --------------------------------------------------------------- write */
 
   function stagedFilesFor(item) {
-    var used = [item.thumb && item.thumb.src, item.video && item.video.src]
-      .concat(
-        item.images.map(function (image) {
-          return image.src;
-        })
-      )
-      .concat(
-        (item.extraImages || []).map(function (image) {
-          return image.src;
-        })
-      );
+    var used = [item.thumb && item.thumb.src, item.video && item.video.src];
+    // Video slot nosi i poster, koji je zaseban fajl.
+    item.images.concat(item.extraImages || []).forEach(function (image) {
+      used.push(image.src, image.poster);
+    });
     var files = [];
     used.forEach(function (src) {
       var staged = state.staged[src];
@@ -2525,7 +2699,10 @@
         return image.src;
       })
       .map(function (image) {
-        return { src: image.src, alt: image.alt || "" };
+        if (!isVideoPath(image.src)) return { src: image.src, alt: image.alt || "" };
+        var row = galleryRow(image);
+        delete row.type;
+        return row;
       });
   }
 
@@ -3001,7 +3178,7 @@
 
       var what = [];
       if (pairs.length) what.push("zamena " + pairs.length + " slike/slika");
-      if (extrasDirty) what.push(cleanExtras(draft).length + " dodatnih slika");
+      if (extrasDirty) what.push(cleanExtras(draft).length + " dodatnih slika/videa");
       if (textUpdates.length) what.push(textUpdates.length + " tekstualnih polja");
 
       return { message: "CMS: " + draft.title + " — " + what.join(", "), files: files };

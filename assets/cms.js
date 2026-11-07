@@ -75,6 +75,97 @@
     }, 3000);
   }
 
+  // Videi u galeriji su motion grafika: pustaju se sami, bez zvuka i u krug, ali
+  // samo dok su na ekranu. Van ekrana stoje — na stranici sa sedam animacija
+  // telefon bi inace dekodirao svih sedam odjednom i trosio bateriju i podatke.
+  // Skidanje pocinje malo pre nego sto video dodje do ekrana (`preload` se tad
+  // podigne sa "none"), pa pustanje krene bez cekanja.
+  //
+  // Ko je u sistemu iskljucio animacije ili ukljucio stednju podataka dobija
+  // poster i kontrole, pa sam bira da li ce pustiti. Ista logika je u
+  // assets/legacy-gallery.js za originalne Framer stranice — menjati na oba mesta.
+  var videos = Array.prototype.slice.call(document.querySelectorAll("video[data-cms-video]"));
+  if (videos.length) {
+    var calm =
+      (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) ||
+      (navigator.connection && navigator.connection.saveData);
+
+    var showControls = function (video) {
+      video.controls = true;
+      video.preload = "metadata";
+    };
+
+    var playVideo = function (video) {
+      if (video.dataset.cmsPaused || document.hidden) return;
+      var attempt = video.play();
+      // iOS u rezimu stednje baterije ne dozvoljava samopustanje — tad kontrole.
+      if (attempt && attempt.catch) attempt.catch(function () { showControls(video); });
+    };
+
+    videos.forEach(function (video) {
+      video.muted = true;
+      video.playsInline = true;
+      if (calm) showControls(video);
+    });
+
+    if (!calm && typeof IntersectionObserver === "function") {
+      var visible = [];
+
+      var warm = new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (entry) {
+            if (!entry.isIntersecting) return;
+            entry.target.preload = "auto";
+            warm.unobserve(entry.target);
+          });
+        },
+        { rootMargin: "400px 0px" }
+      );
+
+      var watch = new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (entry) {
+            var video = entry.target;
+            var at = visible.indexOf(video);
+            if (entry.isIntersecting) {
+              if (at < 0) visible.push(video);
+              playVideo(video);
+            } else {
+              if (at >= 0) visible.splice(at, 1);
+              video.pause();
+            }
+          });
+        },
+        { threshold: 0.25 }
+      );
+
+      videos.forEach(function (video) {
+        warm.observe(video);
+        watch.observe(video);
+        // Dodir pauzira i ponovo pusta — da se kadar moze zaustaviti i pogledati.
+        video.addEventListener("click", function () {
+          if (video.controls) return;
+          if (video.paused) {
+            delete video.dataset.cmsPaused;
+            playVideo(video);
+          } else {
+            video.dataset.cmsPaused = "1";
+            video.pause();
+          }
+        });
+      });
+
+      document.addEventListener("visibilitychange", function () {
+        visible.forEach(function (video) {
+          if (document.hidden) video.pause();
+          else playVideo(video);
+        });
+      });
+    } else if (!calm) {
+      videos.forEach(showControls);
+    }
+  }
+
   // Tackice ispod galerije. Na uskom ekranu se slike prevlace u stranu (vidi
   // cms.css), pa treba pokazati na kojoj si — i omoguciti skok na bilo koju.
   // Sam pomeraj radi `scroll-snap`; ovde se samo cita i postavlja `scrollLeft`.
