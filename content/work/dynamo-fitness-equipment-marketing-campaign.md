@@ -1,7 +1,7 @@
 ---
 title: Dynamo Fitness Equipment
 slug: dynamo-fitness-equipment-marketing-campaign
-status: Draft
+status: Live
 year: 2022
 services: []
 overview: Brand marketing campaign for Dynamo Fitness Equipment. One cinematic world across a scroll-driven newsletter, email, motion ads and Instagram.
