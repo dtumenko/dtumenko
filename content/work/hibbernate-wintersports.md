@@ -36,11 +36,14 @@ gallery:
     src: /assets/uploads/mtcxd3a8-posters.jpg
     alt: ''
   - type: image
-    src: /assets/uploads/mtcxd5c9-landing-page.jpg
-    alt: ''
-  - type: image
     src: /assets/uploads/mtcxd8ht-mockup-3.jpg
     alt: ''
+  - type: video
+    src: /assets/uploads/mw6x0l93-04-hibernate-homepage-scroll.mp4
+    alt: ''
+    poster: /assets/uploads/mw6x0l93-04-hibernate-homepage-scroll-poster.jpg
+    width: 1920
+    height: 1080
 ---
 
 Hibernate is a Canadian winter clothing brand based in Edmonton, Alberta, offering cold-weather apparel, from snow jackets and ski suits to sweaters, built around its proprietary Thermal Kinetic Advancement (TKA) layering system. The brand identity design introduced a bold logotype paired with a structured grid system, giving the brand a consistent visual foundation across posters, packaging, and product graphics. Typography and art direction were shaped around Hibernate's core promise of protection against extreme cold, resulting in a rugged, precise visual language that mirrors the durability of the clothing itself.
