@@ -255,7 +255,7 @@
         "key": "live_link",
         "field": "E3vtRy1Vd",
         "label": "Live Link",
-        "value": "framer.com",
+        "value": "#no-live-link",
         "rows": 1
       }
     ]
@@ -442,7 +442,7 @@
         "key": "live_link",
         "field": "E3vtRy1Vd",
         "label": "Live Link",
-        "value": "framer.com",
+        "value": "#no-live-link",
         "rows": 1
       }
     ]
@@ -526,7 +526,7 @@
         "key": "live_link",
         "field": "E3vtRy1Vd",
         "label": "Live Link",
-        "value": "framer.com",
+        "value": "#no-live-link",
         "rows": 1
       }
     ]

@@ -1,2 +1,6 @@
 assets/images/_originals
 node_modules
+# interne beleske i stari export, ne treba ih na sajtu
+PROCITAJ-ME.txt
+README.md
+_html4life

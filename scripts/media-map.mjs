@@ -118,11 +118,11 @@ const FRAMER_PAGES = [
   "404/index.html",
 ];
 
-const NAV_SCRIPT = '<script src="/assets/framer-nav.js" defer></script>';
+const NAV_SCRIPT = '<script src="/assets/site-nav.js" defer></script>';
 
 // Naslovna i About drze slike koje se menjaju iz panela. Framer ih secka po
 // okviru zadate visine; ovaj skript ih vraca u celinu (vidi komentar u fajlu).
-const MEDIA_SCRIPT = '<script src="/assets/framer-media.js" defer></script>';
+const MEDIA_SCRIPT = '<script src="/assets/site-media.js" defer></script>';
 
 // Kontakt forma iz Framer exporta nema `action` — ovaj skript je vezuje za
 // api/contact.js (vidi komentar u fajlu).
@@ -144,7 +144,7 @@ function ensureMediaScript(file) {
   if (!fs.existsSync(full)) return false;
 
   const html = fs.readFileSync(full, "utf8");
-  if (html.includes("/assets/framer-media.js")) return false;
+  if (html.includes("/assets/site-media.js")) return false;
 
   fs.writeFileSync(full, html.replace("</body>", MEDIA_SCRIPT + "\n</body>"), "utf8");
   return true;
@@ -155,7 +155,7 @@ function ensureNavScript(file) {
   if (!fs.existsSync(full)) return false;
 
   const html = fs.readFileSync(full, "utf8");
-  if (html.includes("/assets/framer-nav.js")) return false;
+  if (html.includes("/assets/site-nav.js")) return false;
 
   fs.writeFileSync(full, html.replace("</body>", NAV_SCRIPT + "\n</body>"), "utf8");
   return true;
@@ -198,7 +198,7 @@ function ensureExtraHooks(file, known) {
   if (!html.includes("/assets/legacy-gallery.js")) {
     html = html.replace("</body>", EXTRA_SCRIPT + "\n</body>");
   }
-  if (!html.includes("/assets/framer-nav.js")) {
+  if (!html.includes("/assets/site-nav.js")) {
     html = html.replace("</body>", NAV_SCRIPT + "\n</body>");
   }
 
@@ -486,12 +486,12 @@ function main() {
 
   const patched = FRAMER_PAGES.filter(ensureNavScript);
   console.log(
-    `\n— navigacija —\nframer-nav.js: ${patched.length ? "dodat u " + patched.join(", ") : "vec svuda"}`
+    `\n— navigacija —\nsite-nav.js: ${patched.length ? "dodat u " + patched.join(", ") : "vec svuda"}`
   );
 
   const media = PAGES.map((page) => page.file).filter(ensureMediaScript);
   console.log(
-    `framer-media.js: ${media.length ? "dodat u " + media.join(", ") : "vec svuda"}`
+    `site-media.js: ${media.length ? "dodat u " + media.join(", ") : "vec svuda"}`
   );
 
   const order = buildOrder();

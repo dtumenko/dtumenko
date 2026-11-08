@@ -2,7 +2,7 @@
    Framer CSS se na ovim stranicama ucitava (font-face + tokeni iz <head>), ali
    se Framer runtime ne pokrece — pa je raspored ovde napisan rucno.
 
-   Sve mere su prepisane sa https://dtumenko.framer.website, izmerene u browseru
+   Sve mere su prepisane sa originalnih stranica, izmerene u browseru
    na vise sirina (400 / 900 / 1300 / 1600), da bi CMS stranice stajale isto kao
    one koje je Framer izvezao. Framer prelomne tacke: 810px i 1200px. */
 
