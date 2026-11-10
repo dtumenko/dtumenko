@@ -1071,9 +1071,14 @@
     );
   }
 
+  // Lista iz koje je krenulo prevlacenje — red sa /work ne sme da padne u listu
+  // naslovne (i obrnuto), jer se u dogadjaju nosi samo indeks.
+  var dragList = null;
+
   // Jedan red na ekranu Redosled. Prevlacenje radi preko HTML5 drag-and-drop-a,
   // a strelice stoje uz njega jer je prevlacenje na trackpad-u lako promasiti.
-  function orderRow(list, index, label, badge, onChange) {
+  // `control` (npr. padajuca lista) stoji umesto naziva kad je red izmenljiv.
+  function orderRow(list, index, label, badge, onChange, control) {
     function commit(from, to) {
       if (!moveSlug(list, from, to)) return;
       onChange();
@@ -1089,11 +1094,14 @@
           // Firefox ne pokrece prevlacenje bez podatka u dogadjaju.
           event.dataTransfer.setData('text/plain', String(index));
           event.target.classList.add('is-dragging');
+          dragList = list;
         },
         ondragend: function (event) {
           event.target.classList.remove('is-dragging');
+          dragList = null;
         },
         ondragover: function (event) {
+          if (dragList !== list) return;
           event.preventDefault();
           event.dataTransfer.dropEffect = 'move';
           event.currentTarget.classList.add('is-over');
@@ -1104,6 +1112,7 @@
         ondrop: function (event) {
           event.preventDefault();
           event.currentTarget.classList.remove('is-over');
+          if (dragList !== list) return;
           var from = Number(event.dataTransfer.getData('text/plain'));
           if (!isNaN(from)) commit(from, index);
         },
@@ -1111,7 +1120,7 @@
       [
         el('span', { class: 'ord__grip', html: ICONS.grip }),
         el('span', { class: 'ord__num', text: String(index + 1) }),
-        el('span', { class: 'ord__title', text: label }),
+        control || el('span', { class: 'ord__title', text: label }),
         badge ? el('span', { class: 'rail__badge', text: badge }) : null,
         el('span', { class: 'ord__moves' }, [
           el(
@@ -1172,21 +1181,77 @@
       })
     );
 
-    var homeList = state.order.home.length
+    // Naslovna: cetiri mesta, na svakom bilo koji projekat koji je Live i ima
+    // sliku. Isto pravilo kao u scripts/build.mjs (pickHomeCards): izbor iz
+    // panela, a mesto ciji je projekat u medjuvremenu na Draft-u ili obrisan
+    // popunjava sledeci projekat sa /work. Panel tako pokazuje tacno ono sto ce
+    // biti na sajtu.
+    var HOME_COUNT = 4;
+    var live = projects.filter(function (item) {
+      if (item.status === 'Draft' || !item.slug) return false;
+      if (item.thumb && item.thumb.src) return true;
+      return (item.images || []).some(function (image) {
+        return image && image.src;
+      });
+    });
+    var liveBySlug = {};
+    live.forEach(function (item) {
+      liveBySlug[item.slug] = item;
+    });
+    var home = [];
+    state.order.home
+      .concat(live.map(function (item) { return item.slug; }))
+      .forEach(function (slug) {
+        if (home.length < HOME_COUNT && liveBySlug[slug] && home.indexOf(slug) < 0) home.push(slug);
+      });
+    state.order.home = home;
+
+    // Izbor projekta koji je vec na drugom mestu ih zamenjuje, pa se projekat
+    // nikad ne pojavi dvaput.
+    function homeSelect(index) {
+      return el(
+        'select',
+        {
+          class: 'selectbox ord__select',
+          'aria-label': 'Mesto ' + (index + 1) + ' na naslovnoj',
+          onchange: function (event) {
+            var slug = event.target.value;
+            var other = state.order.home.indexOf(slug);
+            if (other >= 0) state.order.home[other] = state.order.home[index];
+            state.order.home[index] = slug;
+            render();
+          },
+        },
+        live.map(function (item) {
+          var at = state.order.home.indexOf(item.slug);
+          var note = at >= 0 && at !== index ? '  (mesto ' + (at + 1) + ')' : '';
+          return el('option', { value: item.slug, selected: at === index }, [
+            (item.title || item.slug) + note,
+          ]);
+        })
+      );
+    }
+
+    var homeList = home.length
       ? el(
           'ol',
           { class: 'ord__list' },
-          state.order.home.map(function (slug, index) {
-            return orderRow(state.order.home, index, titleBySlug[slug] || slug, null, function () {
-              render();
-            });
+          home.map(function (slug, index) {
+            return orderRow(
+              state.order.home,
+              index,
+              titleBySlug[slug] || slug,
+              null,
+              function () {
+                render();
+              },
+              homeSelect(index)
+            );
           })
         )
       : el('p', {
           class: 'field__hint',
-          text:
-            'Kartice sa naslovne nisu jos procitane. Pokreni `npm run media-map` ' +
-            'pa osvezi panel.',
+          text: 'Nema nijednog projekta koji je Live i ima sliku.',
         });
 
     return el('div', { class: 'ord' }, [
@@ -1206,8 +1271,11 @@
         el('p', {
           class: 'ord__hint',
           text:
-            'Redosled cetiri kartice na dnu naslovne. Koje su to kartice dolazi iz ' +
-            'originalnog izvoza i ne menja se odavde — menja se samo njihov raspored.',
+            'Cetiri projekta na dnu naslovne (Selected Works). Za svako mesto izaberi ' +
+            'projekat iz liste, a strelicama ili prevlacenjem menjas redosled. Kartica ' +
+            'uzima Thumb sliku, godinu i Overview tekst projekta. U listi su samo ' +
+            'projekti koji su Live; ako izabrani kasnije prebacis na Draft, njegovo ' +
+            'mesto na sajtu preuzima sledeci projekat sa /work.',
         }),
         homeList,
       ]),
@@ -2778,7 +2846,7 @@
 
   // Redosled ide u jedan fajl, pa je commit kratak. Stranice ne prepisuje panel
   // nego build na Vercel-u: on cita content/order.json i po njemu redja kartice
-  // na /work i upisuje CSS `order` na naslovnu.
+  // na /work i upisuje izabrana cetiri projekta na naslovnu.
   function publishOrder() {
     if (!orderDirty()) return;
 

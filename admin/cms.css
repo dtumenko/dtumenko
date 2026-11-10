@@ -1125,6 +1125,15 @@ a {
   white-space: nowrap;
 }
 
+.ord__select {
+  flex: 1;
+  min-width: 0;
+  min-height: 30px;
+  padding: 4px 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
 .ord__moves {
   display: flex;
   gap: 2px;

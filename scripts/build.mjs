@@ -679,9 +679,9 @@ function applyOrder(projects, order) {
     .map((entry) => entry.project);
 }
 
-// Naslovna je Framer export i njene cetiri kartice se ne generisu odavde. Ali
-// one su flex-stavke, pa im se redosled menja CSS-om `order` — bez diranja
-// markupa, pa Framer i dalje racuna svoje scroll animacije nad istim cvorovima.
+// Kartice na naslovnoj prepisuje writeHomeCards (nize). Ovo je rezerva za
+// slucaj da ne prepozna stranicu: kartice su flex-stavke, pa im se redosled
+// menja CSS-om `order` — bez diranja markupa.
 //
 // Pravilo cilja karticu preko `href` linka u njoj, jer Framer klase se menjaju
 // sa svakim exportom. Isti selektor pokriva i Desktop i Mobile varijantu.
@@ -703,6 +703,8 @@ function homeOrderStyle(slugs) {
   return `<style id="${HOME_ORDER_ID}">${rules}</style>`;
 }
 
+// Rezervni put: kad writeHomeCards ne prepozna stranicu (npr. posle novog
+// Framer exporta), kartice ostaju one iz exporta i samo im se menja redosled.
 function writeHomeOrder(order) {
   const html = readIfExists(HOME_FILE);
   if (!html) return null;
@@ -725,6 +727,318 @@ function writeHomeOrder(order) {
   if (next === html) return ranked;
   fs.writeFileSync(HOME_FILE, next, "utf8");
   return ranked;
+}
+
+/* ------------------------------------------------- naslovna: izabrani radovi */
+
+// Cetiri kartice na dnu naslovne su Framer-ova lista iz njegovog CMS-a. Koje
+// projekte prikazuje bira se u panelu (Redosled -> Naslovna strana) i stoji u
+// `order.home`; build ih ovde upisuje u stranicu.
+//
+// Kartica postoji na dva mesta i oba se prepisuju:
+//
+//   1. Payload (`__framer__handoverData`) — rezultat Framer-ovog upita, iz kog
+//      React posle ucitavanja crta listu. On je merodavan za ono sto ostaje na
+//      ekranu.
+//   2. HTML svake kartice (desktop i mobilna varijanta) — ono sto se vidi pre
+//      nego sto se React ukljuci. Mora da se slaze sa payload-om, inace React
+//      odbaci markup i crta sve iznova.
+//
+// Prepisuje se ceo sadrzaj svakog mesta, pa je svejedno da li u stranici stoje
+// kartice iz exporta ili one od proslog build-a. Ako nesto u strukturi nije kako
+// se ocekuje, stranica se ne dira (vidi writeHomeOrder).
+const HOME_CARD_COUNT = 4;
+const HANDOVER_RE =
+  /(<script type="framer\/handover" id="__framer__handoverData">)([\s\S]*?)(<\/script>)/;
+// Polja Framer kolekcije "Work" koja kartica cita (vidi upit u payload-u).
+const CARD_FIELDS = ["WZLjnByVm", "TTmrSXZqB", "VQ3BHmaZl", "I0PT0WR78", "Hom1TCczG", "id"];
+// Framer ovako racuna `sizes` za sliku kartice; uzima se iz same stranice kad
+// tamo postoji, a ovo je rezerva.
+const CARD_SIZES =
+  "(min-width: 2510px) max(calc(100vw - 144px), 1px), (min-width: 810px) and (max-width: 2509.98px) max(calc(100vw - 32px), 1px), (max-width: 809.98px) max(calc(100vw - 32px), 1px)";
+const OPT_DIR = path.join(ROOT, "assets/images/opt");
+
+// Payload je u devalue formatu: niz vrednosti u kom kontejneri pokazuju na
+// clanove po indeksu, a ["Map", k, v, …] je Map. Cita se i pise samo ono sto se
+// u njemu zaista nalazi; sve drugo je znak da se export promenio, pa se staje.
+function unflatten(values) {
+  const done = new Map();
+  function hydrate(index) {
+    if (index === -1) return undefined;
+    if (!Number.isInteger(index) || index < 0 || index >= values.length) {
+      throw new Error("nepoznata referenca " + index);
+    }
+    if (done.has(index)) return done.get(index);
+    const value = values[index];
+    if (value === null || typeof value !== "object") {
+      done.set(index, value);
+      return value;
+    }
+    if (Array.isArray(value)) {
+      if (typeof value[0] === "string") {
+        if (value[0] !== "Map") throw new Error("nepoznat tip " + value[0]);
+        const map = new Map();
+        done.set(index, map);
+        for (let i = 1; i < value.length; i += 2) map.set(hydrate(value[i]), hydrate(value[i + 1]));
+        return map;
+      }
+      const list = [];
+      done.set(index, list);
+      value.forEach((ref) => list.push(hydrate(ref)));
+      return list;
+    }
+    const obj = {};
+    done.set(index, obj);
+    for (const key of Object.keys(value)) obj[key] = hydrate(value[key]);
+    return obj;
+  }
+  return hydrate(0);
+}
+
+function flatten(root) {
+  const values = [];
+  function add(value) {
+    if (value === undefined) return -1;
+    const index = values.length;
+    values.push(null);
+    if (value === null || typeof value !== "object") {
+      if (typeof value === "number" && !Number.isFinite(value)) throw new Error("broj " + value);
+      values[index] = value;
+    } else if (value instanceof Map) {
+      const out = ["Map"];
+      values[index] = out;
+      for (const [key, item] of value) out.push(add(key), add(item));
+    } else if (Array.isArray(value)) {
+      const out = [];
+      values[index] = out;
+      value.forEach((item) => out.push(add(item)));
+    } else {
+      const out = {};
+      values[index] = out;
+      for (const key of Object.keys(value)) out[key] = add(value[key]);
+    }
+    return index;
+  }
+  add(root);
+  return values;
+}
+
+// Slika kartice. Optimizovane slike (`image-<hash>-<sirina>.webp`) dobijaju sve
+// velicine koje postoje na disku, kao sto ih je Framer i davao; ostale idu kao
+// jedan fajl.
+function cardImage(src) {
+  if (!src) return null;
+  const opt = src.match(/^\/assets\/images\/opt\/(image-[a-f0-9]+)-\d+\.webp$/i);
+  if (opt && fs.existsSync(OPT_DIR)) {
+    const widths = fs
+      .readdirSync(OPT_DIR)
+      .map((name) => name.match(new RegExp("^" + opt[1] + "-(\\d+)\\.webp$")))
+      .filter(Boolean)
+      .map((m) => Number(m[1]))
+      .sort((a, b) => a - b);
+    if (widths.length) {
+      const url = (w) => `/assets/images/opt/${opt[1]}-${w}.webp`;
+      const largest = url(widths[widths.length - 1]);
+      const size = imageSize(largest);
+      if (size) {
+        return {
+          src: largest,
+          srcSet: widths.length > 1 ? widths.map((w) => `${url(w)} ${w}w`).join(",") : "",
+          width: size.width,
+          height: size.height,
+        };
+      }
+    }
+  }
+  const size = imageSize(src);
+  if (!size) return null;
+  return { src, srcSet: "", width: size.width, height: size.height };
+}
+
+function legacyThumbs() {
+  try {
+    return JSON.parse(readIfExists(path.join(ROOT, "content/legacy-images.json")) || "{}");
+  } catch (err) {
+    return {};
+  }
+}
+
+function homeCard(project, thumbs) {
+  const src = project.hero_image || (project.gallery || []).find((g) => g && g.src && g.type !== "video")?.src;
+  const image = cardImage(src);
+  if (!image) return null;
+  const thumb = thumbs[project.slug] && thumbs[project.slug].thumb;
+  const alt = (thumb && thumb.alt) || project.hero_alt || project.title || "";
+  return {
+    slug: project.slug,
+    title: String(project.title || ""),
+    year: String(project.year ?? ""),
+    overview: String(project.overview || "").trim(),
+    image: { ...image, alt: String(alt) },
+  };
+}
+
+// Izbor iz panela, pa — ako je neki od izabranih u medjuvremenu sklonjen
+// (Draft) ili obrisan — prazno mesto popunjava sledeci projekat sa /work.
+function pickHomeCards(order, listedProjects) {
+  const thumbs = legacyThumbs();
+  const bySlug = new Map(listedProjects.map((p) => [p.slug, p]));
+  const cards = [];
+  const take = (project) => {
+    if (!project || cards.length >= HOME_CARD_COUNT) return;
+    if (cards.some((card) => card.slug === project.slug)) return;
+    const card = homeCard(project, thumbs);
+    if (card) cards.push(card);
+  };
+  order.home.forEach((slug) => take(bySlug.get(slug)));
+  listedProjects.forEach(take);
+  return cards;
+}
+
+function payloadRow(card) {
+  const image = { src: card.image.src };
+  if (card.image.srcSet) image.srcSet = card.image.srcSet;
+  image.pixelWidth = card.image.width;
+  image.pixelHeight = card.image.height;
+  image.alt = card.image.alt;
+  const text = (value) => ({ type: "string", value });
+  return {
+    WZLjnByVm: { type: "responsiveimage", value: image },
+    TTmrSXZqB: text(card.title),
+    VQ3BHmaZl: text(card.year),
+    I0PT0WR78: text(card.overview),
+    Hom1TCczG: text(card.slug),
+    // Framer ovo koristi samo kao React kljuc; slug je jedinstven.
+    id: text(card.slug),
+  };
+}
+
+// Vraca payload sa novim karticama, ili baca gresku ako upit nije onaj koji se
+// ocekuje.
+function rewriteHandover(json, cards) {
+  const values = JSON.parse(json);
+  const root = unflatten(values);
+  const queries = root && root["0"];
+  if (!(queries instanceof Map)) throw new Error("payload nema mapu upita");
+
+  let found = null;
+  for (const [key, rows] of queries) {
+    if (typeof key !== "string" || !key.includes('"xNIwcas5L"')) continue;
+    if (found) throw new Error("vise upita nad kolekcijom");
+    found = key;
+    if (!Array.isArray(rows) || rows.length !== HOME_CARD_COUNT) {
+      throw new Error("upit nema " + HOME_CARD_COUNT + " reda");
+    }
+    rows.forEach((row) => {
+      const keys = Object.keys(row || {});
+      if (keys.length !== CARD_FIELDS.length || !CARD_FIELDS.every((f) => keys.includes(f))) {
+        throw new Error("red ima neocekivana polja: " + keys.join(","));
+      }
+      if (!row.WZLjnByVm || row.WZLjnByVm.type !== "responsiveimage") {
+        throw new Error("polje slike nije responsiveimage");
+      }
+    });
+  }
+  if (!found) throw new Error("nema upita za kartice");
+
+  queries.set(found, cards.map(payloadRow));
+  const next = flatten(root);
+  // Provera da zapis moze da se procita nazad u isto.
+  if (JSON.stringify(unflatten(next)["0"].get(found)) !== JSON.stringify(cards.map(payloadRow))) {
+    throw new Error("payload se ne cita nazad isto");
+  }
+  // `<` kao <, da tekst iz panela ne moze da zatvori <script> tag.
+  return JSON.stringify(next).replace(/</g, "\\u003c");
+}
+
+// Sve kartice u telu stranice: <a href="./work/…"> … </a>. Svaka je u stranici
+// dvaput (desktop pa mobilna), jedna za drugom.
+function cardAnchors(html) {
+  const bodyAt = html.indexOf("<body");
+  const anchors = [];
+  const re = /<a [^>]*href="\.\/work\/([a-z0-9-]+)"[^>]*>/g;
+  re.lastIndex = bodyAt;
+  let match;
+  while ((match = re.exec(html))) {
+    const end = html.indexOf("</a>", match.index);
+    if (end === -1) throw new Error("kartica bez </a>");
+    const inner = html.slice(match.index + match[0].length, end);
+    if (inner.includes("<a ")) throw new Error("ugnjezden link u kartici");
+    anchors.push({ slug: match[1], start: match.index, end: end + 4 });
+    re.lastIndex = end;
+  }
+  return anchors;
+}
+
+function rewriteCardHtml(anchorHtml, card, sizes) {
+  const imgs = anchorHtml.match(/<img [^>]*>/g) || [];
+  const h3s = anchorHtml.match(/<h3 [^>]*>[^<]*<\/h3>/g) || [];
+  const ps = anchorHtml.match(/<p [^>]*>[^<]*<\/p>/g) || [];
+  if (imgs.length !== 2 || h3s.length !== 1 || ps.length !== 3) {
+    throw new Error(`kartica ima ${imgs.length} slike, ${h3s.length} naslova, ${ps.length} pasusa`);
+  }
+
+  const style = (imgs[1].match(/ style="([^"]*)"/) || [])[1] || "";
+  const image = card.image;
+  const img =
+    `<img decoding="async" loading="lazy" width="${image.width}" height="${image.height}"` +
+    (image.srcSet ? ` sizes="${escapeHtml(sizes)}" srcset="${escapeHtml(image.srcSet)}"` : "") +
+    ` src="${escapeHtml(image.src)}" alt="${escapeHtml(image.alt)}"` +
+    (style ? ` style="${style}"` : "") +
+    ">";
+
+  let imgIndex = 0;
+  let pIndex = 0;
+  return anchorHtml
+    .replace(/href="\.\/work\/[a-z0-9-]+"/, () => `href="./work/${card.slug}"`)
+    .replace(/<img [^>]*>/g, (tag) => (imgIndex++ === 1 ? img : tag))
+    .replace(/(<h3 [^>]*>)[^<]*(<\/h3>)/, (all, open, close) => open + escapeHtml(card.title) + close)
+    .replace(/(<p [^>]*>)[^<]*(<\/p>)/g, (all, open, close) =>
+      open + escapeHtml(pIndex++ < 2 ? card.year : card.overview) + close
+    );
+}
+
+function writeHomeCards(order, listedProjects) {
+  const html = readIfExists(HOME_FILE);
+  if (!html) return null;
+
+  const cards = pickHomeCards(order, listedProjects);
+  if (cards.length !== HOME_CARD_COUNT) {
+    throw new Error(`za naslovnu ima ${cards.length} projekata sa slikom, treba ${HOME_CARD_COUNT}`);
+  }
+
+  const handover = html.match(HANDOVER_RE);
+  if (!handover) throw new Error("nema Framer payload-a");
+  const payload = rewriteHandover(handover[2], cards);
+
+  // Kartice idu u parovima (desktop, mobilna); po paru je jedno mesto u listi.
+  const anchors = cardAnchors(html);
+  if (anchors.length !== HOME_CARD_COUNT * 2) {
+    throw new Error(`u stranici je ${anchors.length} kartica, ocekivano ${HOME_CARD_COUNT * 2}`);
+  }
+  for (let i = 0; i < anchors.length; i += 2) {
+    if (anchors[i].slug !== anchors[i + 1].slug) throw new Error("kartice nisu u parovima");
+  }
+  const sizes =
+    anchors
+      .map((a) => (html.slice(a.start, a.end).match(/ sizes="([^"]*)"/) || [])[1])
+      .find(Boolean) || CARD_SIZES;
+
+  let next = "";
+  let at = 0;
+  anchors.forEach((anchor, index) => {
+    next += html.slice(at, anchor.start);
+    next += rewriteCardHtml(html.slice(anchor.start, anchor.end), cards[Math.floor(index / 2)], sizes);
+    at = anchor.end;
+  });
+  next += html.slice(at);
+
+  next = next.replace(HANDOVER_RE, (all, open, body, close) => open + payload + close);
+  // Redosled sada stoji u samom markupu; stari CSS `order` bi ga samo kvario.
+  next = next.replace(new RegExp(`<style id="${HOME_ORDER_ID}">[\\s\\S]*?</style>\\n?`), "");
+
+  if (next !== html) fs.writeFileSync(HOME_FILE, next, "utf8");
+  return cards.map((card) => card.slug);
 }
 
 // Originalnih 6 su Framer stranice: tekst ne moze da se upise u njihov markup,
@@ -802,8 +1116,21 @@ function main() {
 
   fs.writeFileSync(WORK_LIST_FILE, buildWorkListPage(listedProjects, partials), "utf8");
 
-  const homeRanked = writeHomeOrder(order);
-  if (homeRanked) console.log(`redosled na naslovnoj: ${homeRanked.join(", ")}`);
+  let homeCards = null;
+  try {
+    homeCards = writeHomeCards(order, listedProjects);
+  } catch (err) {
+    console.warn(
+      `upozorenje: kartice na naslovnoj nisu prepisane (${err.message}) — ` +
+        "ostaju one iz stranice, menja im se samo redosled"
+    );
+  }
+  if (homeCards) {
+    console.log(`naslovna: ${homeCards.join(", ")}`);
+  } else {
+    const homeRanked = writeHomeOrder(order);
+    if (homeRanked) console.log(`redosled na naslovnoj: ${homeRanked.join(", ")}`);
+  }
   console.log(
     `built  work/index.html (${listedProjects.length} kartica, ` +
       `${allProjects.length - listedProjects.length} nelistirano)`

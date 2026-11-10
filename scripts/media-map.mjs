@@ -470,9 +470,14 @@ function buildOrder() {
     }
   }
 
+  // `home` je izbor iz panela (koja cetiri projekta idu na naslovnu), ne spisak
+  // onoga sto trenutno stoji u stranici — zato se ne dopunjuje iz index.html.
+  // Samo se sklanja obrisan projekat; prazan izbor dobija kartice iz stranice.
+  const known = new Set(knownSlugs());
+  const home = previous.home.filter((slug) => known.has(slug));
   const order = {
     work: mergeOrder(previous.work, knownSlugs()),
-    home: mergeOrder(previous.home, homeSlugs()),
+    home: home.length ? home : homeSlugs(),
   };
   fs.writeFileSync(ORDER_OUT, JSON.stringify(order, null, 2) + "\n", "utf8");
   return order;
