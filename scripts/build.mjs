@@ -824,11 +824,14 @@ function flatten(root) {
 }
 
 // Slika kartice. Optimizovane slike (`image-<hash>-<sirina>.webp`) dobijaju sve
-// velicine koje postoje na disku, kao sto ih je Framer i davao; ostale idu kao
-// jedan fajl.
+// velicine koje postoje na disku, kao sto ih je Framer i davao. Isto vazi za
+// upload iz CMS-a (`/assets/uploads/<ime>.jpg`) kad u opt/ postoje WebP
+// varijante `<ime>-<sirina>.webp`; ostale slike idu kao jedan fajl.
 function cardImage(src) {
   if (!src) return null;
-  const opt = src.match(/^\/assets\/images\/opt\/(image-[a-f0-9]+)-\d+\.webp$/i);
+  const opt =
+    src.match(/^\/assets\/images\/opt\/(image-[a-f0-9]+)-\d+\.webp$/i) ||
+    src.match(/^\/assets\/uploads\/([A-Za-z0-9_-]+)\.(?:jpe?g|png|webp)$/i);
   if (opt && fs.existsSync(OPT_DIR)) {
     const widths = fs
       .readdirSync(OPT_DIR)
